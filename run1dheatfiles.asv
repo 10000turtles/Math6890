@@ -1,0 +1,15 @@
+heat1d10 % Change depending on file
+heat1d20
+heat1d40
+heat1d80
+heat1d160
+
+
+loglog([dx10,dx20,dx40,dx80,dx160],[maxErr10,maxErr20,maxErr40,maxErr80,maxErr160],'o')
+xlabel("dx")
+ylabel("Max Error")
+hold on
+x_lin = linspace(dx10,dx160,100);
+y_lin = x_lin.^2;
+loglog(x_lin,y_lin)
+legend("dx vs. maxError","reference")
