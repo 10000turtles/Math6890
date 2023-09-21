@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
 
     if (debug > 1)
     {
-        for (inti = nd1a; i <= nd1b; i++)
+        for (int i = nd1a; i <= nd1b; i++)
             printf("x(%2d)=%12.4e\n", i, x(i));
     }
 
@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
     if (debug > 0)
     {
         printf("Afterinitialconditions\nu=[");
-        for (inti = nd1a; i <= nd1b; i++)
+        for (int i = nd1a; i <= nd1b; i++)
             printf("%10.4e,", uc(i));
         printf("]\n");
     }
@@ -371,9 +371,9 @@ int main(int argc, char *argv[])
         //----RHSforboundaryconditions---
         for (int side = 0; side <= 1; side++)
         {
-            const inti1 = side == 0 ? n1a : n1b;
-            const intis = 1 - 2 * side;
-            IndexIb = Range(i1, i1);
+            const int i1 = side == 0 ? n1a : n1b;
+            const int is = 1 - 2 * side;
+            Index Ib = Range(i1, i1);
 
             if (boundaryCondition(side, 0) == dirichlet)
             {
@@ -401,7 +401,7 @@ int main(int argc, char *argv[])
         {
             const int i1 = side == 0 ? n1a : n1b;
             const int is = 1 - 2 * side;
-            IndexIb = Range(i1, i1);
+            Index Ib = Range(i1, i1);
             if (boundaryCondition(side, 0) == dirichlet)
             {
                 // Useextrapolation:
