@@ -7,7 +7,7 @@
 #include "A++.h"
 
 typedef double Real;
-typedef double SerialArray RealArray;
+typedef doubleSerialArray RealArray;
 
 int factorTridiagonalMatrix(RealArray &Ax);
 

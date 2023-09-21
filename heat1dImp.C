@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 
     // setupboundaryconditionarray
     const int dirichlet = 1, neumann = 2;
-    IntegerArrayboundaryCondition(2, numberOfDimensions);
+    IntegerArray boundaryCondition(2, numberOfDimensions);
     boundaryCondition(0, 0) = dirichlet; // left
     boundaryCondition(1, 0) = dirichlet; // right
 
