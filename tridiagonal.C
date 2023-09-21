@@ -3,6 +3,7 @@
 #include "A++.h"
 
 typedef double Real;
+
 typedef doubleSerialArray RealArray;
 
 // define macrosforarrayreferences
@@ -16,7 +17,7 @@ int factorTridiagonalMatrix(RealArray &Ax)
 {
     const int iax = Ax.getBase(1), ibx = Ax.getBound(1);
 
-    Real *Ax_p = Ax.getDataPoint er();
+    Real *Ax_p = Ax.getDataPointer();
 
     // Ax.display("Axbeforefactor");
 
@@ -31,7 +32,7 @@ int factorTridiagonalMatrix(RealArray &Ax)
     //[anbn]
     for (int i1 = iax + 1; i1 <= ibx; i1++)
     {
-        Reald = -AX(0, i1) / AX(1, i1 - 1); //-a[i1]/b[i1-1]
+        Real d = -AX(0, i1) / AX(1, i1 - 1); //-a[i1]/b[i1-1]
         AX(1, i1) += d * AX(2, i1 - 1);
         AX(0, i1) = d; // savedhere
     }
@@ -48,8 +49,8 @@ int solveTridiagonal(RealArray &Ax, RealArray &rhs)
 {
     const int iax = Ax.getBase(1), ibx = Ax.getBound(1);
 
-    const Real *Ax_p = Ax.getDataPoint er();
-    Real *rhs_p = rhs.getDataPoint er();
+    const Real *Ax_p = Ax.getDataPointer();
+    Real *rhs_p = rhs.getDataPointer();
 
     //---forwardelimination--
     for (int i1 = iax + 1; i1 <= ibx; i1++)
