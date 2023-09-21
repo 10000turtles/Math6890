@@ -23,10 +23,10 @@ all=heat1dImp
 CC=gcc
 CXX=g++
 
-CCFLAGS=-fPIC-O3-I$(APlusPlus)/include -I../../include
+CCFLAGS= -fPIC -O3 -I$(APlusPlus)/include -I../../include
 
 #ListoflibrariesforA++
-AppLibraries=-Wl,-rpath,$(APlusPlus)/lib-L$(APlusPlus)/lib-lApp-lApp_static
+AppLibraries=-Wl,-rpath,$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static
 
 #Listofalllibraries
 LIBS=$(AppLibraries)
@@ -34,12 +34,12 @@ LIBS=$(AppLibraries)
 #implicit(generic)ruletocompile.Cfiles
 #$@=filenameofthetarget
 #$<=nameofthefirstprerequistite
-%.o:%.C
-$(CXX)$(CCFLAGS)-o$@-c$<
+%.o : %.C
+	$(CXX) $(CCFLAGS) -o $@ -c $<
 
 #1Dheatequation,implicittime-stepping,A++arrays
-heat1dImpFiles=heat1dImp.otridiagonal.o
-heat1dImp:$(heat1dImpFiles)
-$(CXX)$(CCFLAGS)-o$@$(heat1dImpFiles)$(LIBS)
+heat1dImpFiles=heat1dImp.o tridiagonal.o
+heat1dImp: $(heat1dImpFiles)
+$(CXX) $(CCFLAGS) -o $@ $(heat1dImpFiles) $(LIBS)
 
 clean:;rm*.o
