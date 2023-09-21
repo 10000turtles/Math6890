@@ -26,7 +26,7 @@ int parseCommand(const string &line, const string &command, int &value)
 }
 
 // Parseadouble
-int parseCommand(const string &line, conststring &command, double &value)
+int parseCommand(const string &line, const string &command, double &value)
 {
     int len = command.length();
     if (line.substr(0, len) == command)
