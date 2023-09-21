@@ -5,15 +5,15 @@
 //
 //===================================================================================
 
-#include "A++.h"
+#include "A++.h"s
 
 // Tridiagonalfactorandsolve:
 #include "tridiagonal.h"
 
 // define sometypes
 typedef double Real;
-typedef double SerialArrayRealArray;
-typedef int SerialArrayIntegerArray;
+typedef double SerialArray RealArray;
+typedef int SerialArray IntegerArray;
 
 #include <string>
 using std::max;
