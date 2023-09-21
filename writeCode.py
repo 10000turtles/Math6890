@@ -24,6 +24,6 @@ for i in spl:
                 out = out[:index] + " " + out[index:]
         new_str = new_str + out
 
-wr = open("heat1dImp.C", "w")
+wr = open("Makefile", "w")
 
 wr.write(new_str)
