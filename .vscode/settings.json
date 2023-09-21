@@ -2,6 +2,9 @@
     "C_Cpp.default.compilerPath": "C:\\MinGW\\bin\\gcc.exe",
     "files.associations": {
         "HW2.C": "cpp",
-        "parse.C": "cpp"
+        "parse.C": "cpp",
+        "fixed.C": "cpp",
+        "tridiagonal.C": "cpp",
+        "heat1dImp.C": "cpp"
     }
 }

@@ -67,8 +67,8 @@ int main(int argc, char *argv[])
 #ifndef SOLUTION
 #define SOLUTION TRIG_DD
 // #define SOLUTION TRIG_NN
-//  #define SOLUTION POLY_DD
-//  #define SOLUTION POLY_NN
+// #define SOLUTION POLY_DD
+// #define SOLUTION POLY_NN
 #endif
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 // Macrostodefinefortranlikearrays
 #define uc(i) u_p[cur][i - nd1a]
 #define un(i) u_p[next][i - nd1a]
-
+#define w(i) w_temp[i - nd1a]
     // initialconditions
     Real t = 0.;
     int cur = 0; //"current"solution,indexintou_p[]
@@ -228,14 +228,34 @@ int main(int argc, char *argv[])
 
         const int cur = n % 2;        // currenttimelevel
         const int next = (n + 1) % 2; // nexttimelevel
-
+        Real *w_temp = new Real[nd1];
         //---updatetheinteriorpoints---
         for (int i = n1a; i <= n1b; i++)
         {
-            un(i) = uc(i) + rx * (uc(i + 1) - 2. * uc(i) + uc(i - 1)) + dt * FORCE(x(i), t);
+            // un(i) = uc(i) + rx * (uc(i + 1) - 2. * uc(i) + uc(i - 1)) + dt * FORCE(x(i), t);
+            w(i) = uc(i) + rx / 2 * (uc(i + 1) - 2. * uc(i) + uc(i - 1)) + dt / 2 * FORCE(x(i), t);
         }
 
         //----boundaryconditions---
+        for (int side = 0; side <= 1; side++)
+        {
+            const int i = side == 0 ? n1a : n1b; // boundaryindex
+            const int is = 1 - 2 * side;         // is=1onleft,-1onright
+            if (boundaryCondition(side, 0) == dirichlet)
+            {
+                w(i) = UTRUE(x(i), t + dt / 2);
+                w(i - is) = 3. * w(i) - 3. * w(i + is) + w(i + 2 * is); // extrapolateghost
+            }
+            else
+            {
+                // NeumannBC
+                w(i - is) = w(i + is) - 2. * is * dx * UTRUEX(x(i), t + dt / 2);
+            }
+        }
+        for (int i = n1a; i <= n1b; i++)
+        {
+            un(i) = uc(i) + rx * (w(i + 1) - 2. * w(i) + w(i - 1)) + dt * FORCE(x(i), t + dt / 2);
+        }
         for (int side = 0; side <= 1; side++)
         {
             const int i = side == 0 ? n1a : n1b; // boundaryindex
@@ -251,7 +271,6 @@ int main(int argc, char *argv[])
                 un(i - is) = un(i + is) - 2. * is * dx * UTRUEX(x(i), t + dt);
             }
         }
-
         if (debug > 1)
         {
             printf("step %d: After update interior and real BCs\nu=[", n + 1);
@@ -299,8 +318,8 @@ int main(int argc, char *argv[])
     //---Writeafileforplottinginmatlab--
     FILE *matlabFile = fopen(matlabFileName.c_str(), "w");
     fprintf(matlabFile, "%%Fileswrittenbyheat1d.C\n");
-    fprintf(matlabFile, "xa=%g;xb=%g;kappa=%g;t=%g;maxErr=%10.3e;cpuTimeStep=%10.3e;\n", xa, xb, kappa, tFinal, maxErr, cpuTimeStep);
-    fprintf(matlabFile, "Nx=%d;dx=%14.6e;numGhost=%d;n1a=%d;n1b=%d;nd1a=%d;nd1b=%d;\n", Nx, dx, numGhost, n1a, n1b, nd1a, nd1b);
+    fprintf(matlabFile, "xa=%g;xb=%g;kappa=%g;t=%g;maxErr%d=%10.3e;cpuTimeStep=%10.3e;\n", xa, xb, kappa, tFinal, Nx, maxErr, cpuTimeStep);
+    fprintf(matlabFile, "Nx=%d;dx%d=%14.6e;numGhost=%d;n1a=%d;n1b=%d;nd1a=%d;nd1b=%d;\n", Nx, Nx, dx, numGhost, n1a, n1b, nd1a, nd1b);
     fprintf(matlabFile, "solutionName=\'%s\';\n", solutionName);
 
     string s1 = "x" + to_string(Nx);
