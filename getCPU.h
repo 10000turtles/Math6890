@@ -1,4 +1,5 @@
-#ifndef GET_CPU_H #define GET_CPU_H
+#ifndef GET_CPU_H
+#define GET_CPU_H
 
 #include <ctime>
 //--------------------------------------------
