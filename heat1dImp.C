@@ -13,7 +13,7 @@
 // define sometypes
 typedef double Real;
 typedef double SerialArrayRealArray;
-typedef intSerialArrayIntegerArray;
+typedef int SerialArrayIntegerArray;
 
 #include <string>
 using std::max;
@@ -49,8 +49,8 @@ static Real kappaPiSq = kappa * kxPi * kxPi;
 #define FORCENN(x, t) (0.)
 
 // polynomialmanufacturedsolution
-static cons tRealb0 = 1., b1 = .5, b2 = .25;
-static cons tReala0 = 1., a1 = .3, a2 = -.1;
+static const Real b0 = 1., b1 = .5, b2 = .25;
+static const Real a0 = 1., a1 = .3, a2 = -.1;
 #define POLY(x, t) (b0 + (x) * (b1 + (x)*b2)) * (a0 + (t) * (a1 + (t)*a2))
 #define POLYx(x, t) (b1 + 2. * (x)*b2) * (a0 + (t) * (a1 + (t)*a2))
 #define POLYT(x, t) (b0 + (x) * (b1 + (x)*b2)) * (a1 + 2. * (t)*a2)
@@ -65,7 +65,7 @@ static cons tReala0 = 1., a1 = .3, a2 = -.1;
 // I1(input):evaluateattheseindexvalues
 // uTrue(output):uTrue(I1)=truesolution
 //--------------------------------------------------------------------------------------
-int getTrue(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &uTrue)
+int getTrue(int solutionOption, Real t, RealArray &x, Index &I1, RealArray &uTrue)
 {
     if (solutionOption == trueDD)
         uTrue(I1) = UTRUEDD(x(I1), t);
@@ -85,7 +85,7 @@ int getTrue(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &uTrue)
 //--------------------------------------------------------------------------------------
 // Functiontoevaluatethex-derivativeofthetruesolution
 //--------------------------------------------------------------------------------------
-int getTruex(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &uTruex)
+int getTruex(int solutionOption, Real t, RealArray &x, Index &I1, RealArray &uTruex)
 {
     if (solutionOption == trueDD)
         uTruex(I1) = UTRUEDDx(x(I1), t);
@@ -104,7 +104,7 @@ int getTruex(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &uTrue
 //--------------------------------------------------------------------------------------
 // FunctiontoevaluatethePDEforcing
 //--------------------------------------------------------------------------------------
-intgetForce(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &force)
+int getForce(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &force)
 {
     if (solutionOption == trueDD)
         force(I1) = FORCEDD(x(I1), t);
@@ -120,7 +120,7 @@ intgetForce(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &force)
     return 0;
 }
 
-intmain(intargc, char *argv[])
+int main(intargc, char *argv[])
 {
 
     printf("Usage:heat1dImp-Nx=<i>-tFinal=<f>-sol=[true|poly]-bc1=[d|n]-bc2=[d|n]-debug=<i>matlabFileName=<s>\n");

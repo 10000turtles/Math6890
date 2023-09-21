@@ -7,7 +7,7 @@
 // name(input):nameforarray
 //(nd1a:nd1b)(input):arraydimensions
 //--------------------------------------------------------------------------------------
-int writeMatlabVector(FILE *matlabFile, Real *u_p, cons tchar *name, intnd1a, intnd1b)
+int writeMatlabVector(FILE *matlabFile, Real *u_p, const char *name, int nd1a, int nd1b)
 {
 #define u(i) u_p[i - nd1a]
 
@@ -15,14 +15,14 @@ int writeMatlabVector(FILE *matlabFile, Real *u_p, cons tchar *name, intnd1a, in
     // Savethevectoras:
     // name=[numnumnumnumnum...
     // numnumnumnumnum];
-    fprint f(matlabFile, "%s=[", name);
+    fprintf(matlabFile, "%s=[", name);
     for (int i = nd1a; i <= nd1b; i++)
     {
-        fprint f(matlabFile, "%20.15e", u(i));
+        fprintf(matlabFile, "%20.15e", u(i));
         if ((i - nd1a) % numPerLine == numPerLine - 1)
-            fprint f(matlabFile, "...\n"); // continuationline
+            fprintf(matlabFile, "...\n"); // continuationline
     }
-    fprint f(matlabFile, "];\n");
+    fprintf(matlabFile, "];\n");
 
     return 0;
 #undef u
@@ -34,14 +34,14 @@ int writeMatlabVector(FILE *matlabFile, Real *u_p, cons tchar *name, intnd1a, in
 int writeMatlabVector(FILE *matlabFile, RealArray &u, cons tchar *name, intnd1a, intnd1b)
 {
     const int numPerLine = 8; // numberofentriesperline
-    fprint f(matlabFile, "%s=[", name);
+    fprintf(matlabFile, "%s=[", name);
     for (int i = nd1a; i <= nd1b; i++)
     {
-        fprint f(matlabFile, "%20.15e", u(i));
+        fprintf(matlabFile, "%20.15e", u(i));
         if ((i - nd1a) % numPerLine == numPerLine - 1)
-            fprint f(matlabFile, "...\n"); // continuationline
+            fprintf(matlabFile, "...\n"); // continuationline
     }
-    fprint f(matlabFile, "];\n");
+    fprintf(matlabFile, "];\n");
 
     return 0;
 }
