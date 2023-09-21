@@ -12,8 +12,8 @@
 
 // define sometypes
 typedef double Real;
-typedef double SerialArray RealArray;
-typedef int SerialArray IntegerArray;
+typedef doubleSerialArray RealArray;
+typedef intSerialArray IntegerArray;
 
 #include <string>
 using std::max;
