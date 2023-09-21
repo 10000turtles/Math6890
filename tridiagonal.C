@@ -3,7 +3,7 @@
 #include "A++.h"
 
 typedef double Real;
-typedef double SerialArrayRealArray;
+typedef doubleSerialArray RealArray;
 
 // define macrosforarrayreferences
 #define AX(i, j) Ax_p[(i) + 3 * (j)]
