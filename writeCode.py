@@ -6,7 +6,7 @@ spl = str.split(s, " ")
 
 new_str = ""
 
-key_words = ["inline", "int", "double", "define",
+key_words = ["static", "inline", "using", "double", "define",
              "ifndef", "include", "typedef", "const", "return"]
 
 count = 2
@@ -24,6 +24,6 @@ for i in spl:
                 out = out[:index] + " " + out[index:]
         new_str = new_str + out
 
-wr = open("Makefile", "w")
+wr = open("heat1dImp.C", "w")
 
 wr.write(new_str)
