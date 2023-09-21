@@ -104,7 +104,7 @@ int getTruex(int solutionOption, Real t, RealArray &x, Index &I1, RealArray &uTr
 //--------------------------------------------------------------------------------------
 // FunctiontoevaluatethePDEforcing
 //--------------------------------------------------------------------------------------
-int getForce(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &force)
+int getForce(int solutionOption, Real t, RealArray &x, Index &I1, RealArray &force)
 {
     if (solutionOption == trueDD)
         force(I1) = FORCEDD(x(I1), t);
@@ -120,7 +120,7 @@ int getForce(intsolutionOption, Realt, RealArray &x, Index &I1, RealArray &force
     return 0;
 }
 
-int main(intargc, char *argv[])
+int main(int argc, char *argv[])
 {
 
     printf("Usage:heat1dImp-Nx=<i>-tFinal=<f>-sol=[true|poly]-bc1=[d|n]-bc2=[d|n]-debug=<i>matlabFileName=<s>\n");

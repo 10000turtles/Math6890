@@ -31,7 +31,7 @@ int writeMatlabVector(FILE *matlabFile, Real *u_p, const char *name, int nd1a, i
 //-----------------------------------------------------------------------------------
 // Saveavectortoamatlabfile.
 //-----------------------------------------------------------------------------------
-int writeMatlabVector(FILE *matlabFile, RealArray &u, cons tchar *name, intnd1a, intnd1b)
+int writeMatlabVector(FILE *matlabFile, RealArray &u, const schar *name, intnd1a, intnd1b)
 {
     const int numPerLine = 8; // numberofentriesperline
     fprintf(matlabFile, "%s=[", name);
