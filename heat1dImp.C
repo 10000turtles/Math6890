@@ -108,9 +108,9 @@ int getForce(int solutionOption, Real t, RealArray &x, Index &I1, RealArray &for
 {
     if (solutionOption == trueDD)
         force(I1) = FORCEDD(x(I1), t);
-    elseif(solutionOption == trueNN)
+    else if (solutionOption == trueNN)
         force(I1) = FORCENN(x(I1), t);
-    elseif(solutionOption == poly)
+    else if (solutionOption == poly)
         force(I1) = POLYFORCE(x(I1), t);
     else
     {
@@ -125,16 +125,16 @@ int main(int argc, char *argv[])
 
     printf("Usage:heat1dImp-Nx=<i>-tFinal=<f>-sol=[true|poly]-bc1=[d|n]-bc2=[d|n]-debug=<i>matlabFileName=<s>\n");
 
-    const Realpi = M_PI;
+    const Real pi = M_PI;
 
-    const intnumberOfDimensions = 1;
+    const int numberOfDimensions = 1;
     int Nx = 10;
 
     Real xa = 0., xb = 1.;
     Real tFinal = 1.;
 
     // setupboundaryconditionarray
-    const intdirichlet = 1, neumann = 2;
+    const int dirichlet = 1, neumann = 2;
     IntegerArrayboundaryCondition(2, numberOfDimensions);
     boundaryCondition(0, 0) = dirichlet; // left
     boundaryCondition(1, 0) = dirichlet; // right
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
                 boundaryCondition(side, 0) = dirichlet;
                 printf("SETTINGboundaryCondition(%d,0)=dirichlet\n", side);
             }
-            elseif(bcName == "n")
+            else if (bcName == "n")
             {
                 boundaryCondition(side, 0) = neumann;
                 printf("SETTINGboundaryCondition(%d,0)=neumann\n", side);
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
     }
 
     // setthesolutionOption:
-    intsolutionOption = trueDD;
+    int solutionOption = trueDD;
     if (boundaryCondition(0, 0) == dirichlet && boundaryCondition(1, 0) == dirichlet)
     {
         solutionOption = sol == trueSolution ? trueDD : poly;
@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
             printf("x(%2d)=%12.4e\n", i, x(i));
     }
 
-    RealArrayu[2]; // twoarrayswillbeusedforcurrentandnewtimes
+    RealArray u[2]; // twoarrayswillbeusedforcurrentandnewtimes
     u[0].redim(Rx);
     u[1].redim(Rx);
 
