@@ -5,7 +5,7 @@
 //
 //===================================================================================
 
-#include "A++.h"s
+#include "A++.h"
 
 // Tridiagonalfactorandsolve:
 #include "tridiagonal.h"
