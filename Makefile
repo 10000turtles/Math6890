@@ -42,4 +42,10 @@ heat1dImpFiles=heat1dImp.o tridiagonal.o
 heat1dImp: $(heat1dImpFiles)
 	$(CXX) $(CCFLAGS) -o $@ $(heat1dImpFiles) $(LIBS)
 
+./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d10.m
+./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d20.m
+./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d40.m
+./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d80.m
+./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d160.m
+
 clean:; rm *.o
