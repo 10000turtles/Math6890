@@ -18,7 +18,7 @@ int writeMatlabVector(FILE *matlabFile, Real *u_p, const char *name, int nd1a, i
     fprintf(matlabFile, "%s=[", name);
     for (int i = nd1a; i <= nd1b; i++)
     {
-        fprintf(matlabFile, "%20.15e", u(i));
+        fprintf(matlabFile, "%20.15e ", u(i));
         if ((i - nd1a) % numPerLine == numPerLine - 1)
             fprintf(matlabFile, "...\n"); // continuationline
     }
