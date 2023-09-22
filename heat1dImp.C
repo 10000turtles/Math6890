@@ -477,8 +477,8 @@ int main(int argc, char *argv[])
     //---Writeamatlabfileforplottinginmatlab--
     FILE *matlabFile = fopen(matlabFileName.c_str(), "w");
     fprintf(matlabFile, "%%Filewrittenbyheat1dImp.C\n");
-    fprintf(matlabFile, "xa=%g;xb=%g;kappa=%g;t=%g;maxErr=%10.3e;cpuTimeStep=%10.3e;\n", xa, xb, kappa, tFinal, maxErr, cpuTimeStep);
-    fprintf(matlabFile, "Nx=%d;dx=%14.6e;numGhost=%d;n1a=%d;n1b=%d;nd1a=%d;nd1b=%d;\n", Nx, dx, numGhost, n1a, n1b, nd1a, nd1b);
+    fprintf(matlabFile, "xa=%g;xb=%g;kappa=%g;t=%g;maxErr%d=%10.3e;cpuTimeStep=%10.3e;\n", xa, xb, kappa, tFinal, Nx, maxErr, cpuTimeStep);
+    fprintf(matlabFile, "Nx=%d;dx%d=%14.6e;numGhost=%d;n1a=%d;n1b=%d;nd1a=%d;nd1b=%d;\n", Nx, Nx, dx, numGhost, n1a, n1b, nd1a, nd1b);
     fprintf(matlabFile, "solutionName=\'%s\';\n", solutionName.c_str());
 
     writeMatlabVector(matlabFile, x, "x", nd1a, nd1b);
