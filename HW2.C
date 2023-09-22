@@ -65,8 +65,8 @@ int main(int argc, char *argv[])
 
 //=====Choosethesolutionhereorcompilewith-DSOLUTION=[1|2|3|4]=====
 #ifndef SOLUTION
-#define SOLUTION TRIG_DD
-// #define SOLUTION TRIG_NN
+// #define SOLUTION TRIG_DD
+#define SOLUTION TRIG_NN
 // #define SOLUTION POLY_DD
 // #define SOLUTION POLY_NN
 #endif
