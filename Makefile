@@ -42,4 +42,4 @@ heat1dImpFiles=heat1dImp.o tridiagonal.o
 heat1dImp: $(heat1dImpFiles)
 	$(CXX) $(CCFLAGS) -o $@ $(heat1dImpFiles) $(LIBS)
 
-clean:;rm*.o
+clean:; rm *.o
