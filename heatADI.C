@@ -11,8 +11,8 @@ typedef intSerialArray IntegerArray;
 
 #include <float.h>
 #include <limits.h>
-#define REAL_EPSILONDBL_EPSILON
-#define REAL_MINDBL_MIN
+#define REAL_EPSILON DBL_EPSILON
+#define REAL_MIN DBL_MIN
 
 // getCPU():Returnthecurrentwall-clocktimeinseconds
 #include "getCPU.h"
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     dimension(1, 1) = nd2b;
 
     //--formthe2Dgridpoints--
-    Realdx[2];
+    Real dx[2];
     dx[0] = (xb - xa) / nx;
     dx[1] = (yb - ya) / ny;
 
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
     // Note:thematrixissymmetricsowecouldjuststore2entries(*BUT*factorizationneedsextrastorageanyway)
     // Keepallthreeincaseweaddadvection
 
-    const intNgx = nd1, Ngy = nd2; // sizeoftridiagonalsystems
+    const int Ngx = nd1, Ngy = nd2; // sizeoftridiagonalsystems
     RealArray Ax(3, Ngx), Ay(3, Ngy);
     RealArray rhsx(Ngx), rhsy(Ngy);
 

@@ -17,7 +17,7 @@
 #youshouldseeA++.haswellasotherinclude files.
 
 #Firsttargetismadebydefaultwhenusing"make",traditionallynamed"all"
-all=heat2d
+all=heatADI
 
 #Setnamesofcompilersonceincaseweneedtochangethem
 CC=gcc
@@ -44,9 +44,16 @@ FFLAGS=$(opt)-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none
 	$(FC) $(FFLAGS) -o $@ -c $<
 
 #1Dheatequation,implicittime-stepping,A++arrays
+
+heatADIFiles=heatADI.o tridiagonal.o 
+heatADI: $(heatADIFiles)
+	$(CXX) $(CCFLAGS) -o $@ $(heatADIFiles) $(LIBS)
+
 heat1dImpFiles=heat2d.o heat2dUpdate.o
 heat2d: $(heat1dImpFiles)
 	$(CXX) $(CCFLAGS) -o $@ $(heat1dImpFiles) $(LIBS)
+
+
 
 
 
