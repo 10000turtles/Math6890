@@ -39,7 +39,7 @@ int parseCommand(const string &line, const string &command, double &value)
 }
 
 // Parseastring
-int parseCommand(const string &line, conststring &command, string &value)
+int parseCommand(const string &line, const string &command, string &value)
 {
     int len = command.length();
     if (line.substr(0, len) == command)

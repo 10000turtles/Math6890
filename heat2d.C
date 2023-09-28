@@ -37,7 +37,7 @@ extern "C"
                      Real &un, const Real &u, const Real &rx, const Real &ry);
 }
 
-int main(intargc, char *argv[])
+int main(int argc, char *argv[])
 {
 
     const Real pi = 4. * atan2(1., 1.);

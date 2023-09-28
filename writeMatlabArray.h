@@ -4,8 +4,7 @@
 //-----------------------------------------------------------------------------------
 // Saveanarraytoamatlabfile.
 //-----------------------------------------------------------------------------------
-int writeMatlabArray(FILE *matlabFile, RealArray &u, const char *name,
-                     int numberOfComponents, IntegerArray &dimension)
+int writeMatlabArray(FILE *matlabFile, RealArray &u, const char *name, int numberOfComponents, IntegerArray &dimension)
 {
     const int nd1a = dimension(0, 0);
     const int nd1b = dimension(1, 0);
