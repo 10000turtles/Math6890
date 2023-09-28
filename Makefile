@@ -41,7 +41,7 @@ opt=-O3
 FC=gfortran 
 FFLAGS=$(opt)-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none 
 %.o: %.f90 
-	$(FC)$(FFLAGS)-o$@-c$<
+	$(FC) $(FFLAGS) -o $@ -c $<
 
 #1Dheatequation,implicittime-stepping,A++arrays
 heat1dImpFiles=heat2d.o heat2dUpdate.o

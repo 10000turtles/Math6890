@@ -8,8 +8,8 @@
 
 // define sometypes
 typedef double Real;
-typedef double SerialArray RealArray;
-typedef int SerialArray IntegerArray;
+typedef doubleSerialArray RealArray;
+typedef intSerialArray IntegerArray;
 
 #include <float.h>
 #include <limits.h>
@@ -32,7 +32,7 @@ typedef int SerialArray IntegerArray;
 
 extern "C"
 {
-    voidheat2dUpdate(const int &n1a, const int &n1b, const int &n2a, const int &n2b,
+    void heat2dUpdate(const int &n1a, const int &n1b, const int &n2a, const int &n2b,
                      const int &nd1a, const int &nd1b, const int &nd2a, const int &nd2b,
                      Real &un, const Real &u, const Real &rx, const Real &ry);
 }
@@ -87,11 +87,11 @@ int main(int argc, char *argv[])
         {
             ny = nx;
         }
-        elseif(parseCommand(line, "-debug=", debug)) {}
-        elseif(parseCommand(line, "-option=", option)) {}
-        elseif(parseCommand(line, "-tFinal=", tFinal)) {}
-        elseif(parseCommand(line, "-saveMatlab=", saveMatlab)) {}
-        elseif(parseCommand(line, "-matlabFileName=", matlabFileName)) {}
+        else if(parseCommand(line, "-debug=", debug)) {}
+        else if(parseCommand(line, "-option=", option)) {}
+        else if(parseCommand(line, "-tFinal=", tFinal)) {}
+        else if(parseCommand(line, "-saveMatlab=", saveMatlab)) {}
+        else if(parseCommand(line, "-matlabFileName=", matlabFileName)) {}
     }
 
     const int numGhost = 1;
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 
     // Gridpoints
     Range Rx(nd1a, nd1b), Ry(nd2a, nd2b);
-    Real Arrayx(Rx, Ry, 2);
+    RealArray x(Rx, Ry, 2);
 
     Real dx[2];
     dx[0] = (xb - xa) / nx;
@@ -159,14 +159,14 @@ int main(int argc, char *argv[])
     printf("kappa=%.3g,nx=%d,ny=%d,tFinal=%6.2f,kx=%g,ky=%g\n", kappa, nx, ny, tFinal, kx, ky);
 
     // westoretwotimelevels
-    Real Arrayua[2];
+    RealArray ua[2];
     ua[0].redim(Rx, Ry);
     ua[0] = 0.;
     ua[1].redim(Rx, Ry);
     ua[1] = 0.;
 
     // initialconditions
-    Real Array &u0 = ua[0];
+    RealArray &u0 = ua[0];
     Real t = 0.;
     for (i2 = nd2a; i2 <= nd2b; i2++)
         for (i1 = nd1a; i1 <= nd1b; i1++)
@@ -195,8 +195,8 @@ int main(int argc, char *argv[])
         t = n * dt; // curtime
 
         int next = (cur + 1) % 2;
-        double Array &u = ua[cur];
-        double Array &un = ua[next];
+        doubleArray &u = ua[cur];
+        doubleArray &un = ua[next];
 
         if (option == scalarIndexing)
         {
@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
                     if (axis == 0)
                     { // leftorrightside
                         i1 = gridIndexRange(side, axis);
-                        inti1g = i1 - is; // indexofghostpoint
+                        int i1g = i1 - is; // indexofghostpoint
                         for (i2 = nd2a; i2 <= nd2b; i2++)
                         {
                             un(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t + dt);
