@@ -17,7 +17,7 @@
 #youshouldseeA++.haswellasotherinclude files.
 
 #Firsttargetismadebydefaultwhenusing"make",traditionallynamed"all"
-all=heat1dImp
+all=heat2d
 
 #Setnamesofcompilersonceincaseweneedtochangethem
 CC=gcc
@@ -37,16 +37,19 @@ LIBS=$(AppLibraries)
 %.o : %.C
 	$(CXX) $(CCFLAGS) -o $@ -c $<
 
+opt=-O3 
+FC=gfortran 
+FFLAGS=$(opt)-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none 
+%.o: %.f90 
+	$(FC)$(FFLAGS)-o$@-c$<
+
 #1Dheatequation,implicittime-stepping,A++arrays
-heat1dImpFiles=heat1dImp.o tridiagonal.o
-heat1dImp: $(heat1dImpFiles)
+heat1dImpFiles=heat2d.o heat2dUpdate.o
+heat2d: $(heat1dImpFiles)
 	$(CXX) $(CCFLAGS) -o $@ $(heat1dImpFiles) $(LIBS)
 
-run:
-	./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d10.m
-	./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d20.m
-	./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d40.m
-	./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d80.m
-	./heat1dImp -sol=true -Nx=160 -bc1=n -bc2=n -matlabFileName=heat1d160.m
+
 
 clean:; rm *.o
+
+
