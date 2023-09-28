@@ -7,6 +7,7 @@
         "tridiagonal.C": "cpp",
         "heat1dImp.C": "cpp",
         "heat2d.C": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "heatADI.C": "cpp"
     }
 }
