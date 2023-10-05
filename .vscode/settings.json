@@ -8,6 +8,7 @@
         "heat1dImp.C": "cpp",
         "heat2d.C": "cpp",
         "cmath": "cpp",
-        "heatADI.C": "cpp"
+        "heatADI.C": "cpp",
+        "poisson.C": "cpp"
     }
 }
