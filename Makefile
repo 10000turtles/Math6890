@@ -23,7 +23,7 @@ all=heatADI
 CC=gcc
 CXX=g++
 
-CCFLAGS= -fPIC -O3 -I$(APlusPlus)/include -I../../include
+CCFLAGS= -fPIC -O1 -I$(APlusPlus)/include -I../../include
 
 #ListoflibrariesforA++
 AppLibraries=-Wl,-rpath,$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static
@@ -37,7 +37,7 @@ LIBS=$(AppLibraries)
 %.o : %.C
 	$(CXX) $(CCFLAGS) -o $@ -c $<
 
-opt=-O3 
+opt=-01
 FC=gfortran 
 FFLAGS=$(opt)-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none 
 %.o: %.f90 

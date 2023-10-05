@@ -24,6 +24,6 @@ for i in spl:
                 out = out[:index] + " " + out[index:]
         new_str = new_str + out
 
-wr = open("heatADI.C", "w")
+wr = open("poisson.C", "w")
 
 wr.write(new_str)
