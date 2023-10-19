@@ -13,11 +13,20 @@ typedef intSerialArray IntegerArray;
 
 #include <float.h>
 #include <limits.h>
+#include <ctime>
+#include <omp.h>
 #define REAL_EPSILON DBL_EPSILON
 #define REAL_MIN DBL_MIN
 
 // getCPU():Returnthecurrentwall-clocktimeinseconds
-#include "getCPU.h"
+inline double getCPU()
+{
+#if defined(_OPENMP)
+    return omp_get_wtime();
+#else
+    return (1.0 * std::clock()) / CLOCKS_PER_SEC;
+#endif
+}
 
 // include commandstpparsecommandlinearguments
 #include "parseCommand.h"
@@ -29,12 +38,11 @@ typedef intSerialArray IntegerArray;
 // Somecompilersaddanunder-scoretothenameof"C"andFortranroutines
 // Notealsothatthefortrannameisalllowercase
 #define heat2dUpdate heat2dupdate_
-
 extern "C"
 {
     void heat2dUpdate(const int &n1a, const int &n1b, const int &n2a, const int &n2b,
-                     const int &nd1a, const int &nd1b, const int &nd2a, const int &nd2b,
-                     Real &un, const Real &u, const Real &rx, const Real &ry);
+                      const int &nd1a, const int &nd1b, const int &nd2a, const int &nd2b,
+                      Real &un, const Real &u, const Real &rx, const Real &ry, const int &thr);
 }
 
 int main(int argc, char *argv[])
@@ -74,6 +82,7 @@ int main(int argc, char *argv[])
 
     Real tFinal = .5;
     int nx = 100, ny = nx;
+    int thread = 1;
 
     int saveMatlab = 0; // 1=saveamatlabfile,2=savesolutiontoo
     string matlabFileName = "heat2d.m";
@@ -87,11 +96,24 @@ int main(int argc, char *argv[])
         {
             ny = nx;
         }
-        else if(parseCommand(line, "-debug=", debug)) {}
-        else if(parseCommand(line, "-option=", option)) {}
-        else if(parseCommand(line, "-tFinal=", tFinal)) {}
-        else if(parseCommand(line, "-saveMatlab=", saveMatlab)) {}
-        else if(parseCommand(line, "-matlabFileName=", matlabFileName)) {}
+        else if (parseCommand(line, "-debug=", debug))
+        {
+        }
+        else if (parseCommand(line, "-option=", option))
+        {
+        }
+        else if (parseCommand(line, "-tFinal=", tFinal))
+        {
+        }
+        else if (parseCommand(line, "-saveMatlab=", saveMatlab))
+        {
+        }
+        else if (parseCommand(line, "-matlabFileName=", matlabFileName))
+        {
+        }
+        else if (parseCommand(line, "-threads=", thread))
+        {
+        }
     }
 
     const int numGhost = 1;
@@ -136,13 +158,16 @@ int main(int argc, char *argv[])
     dx[1] = (yb - ya) / ny;
 
     int i1, i2;
-    for (i2 = nd2a; i2 <= nd2b; i2++)
-        for (i1 = nd1a; i1 <= nd1b; i1++)
-        {
-            x(i1, i2, 0) = xa + (i1 - n1a) * dx[0];
-            x(i1, i2, 1) = ya + (i2 - n2a) * dx[1];
-        }
-
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1)
+        for (i2 = nd2a; i2 <= nd2b; i2++)
+            for (i1 = nd1a; i1 <= nd1b; i1++)
+            {
+                x(i1, i2, 0) = xa + (i1 - n1a) * dx[0];
+                x(i1, i2, 1) = ya + (i2 - n2a) * dx[1];
+            }
+    }
     const Real kx = 2., ky = 3;
     const Real kxp = kx * pi;
     const Real kyp = ky * pi;
@@ -168,12 +193,15 @@ int main(int argc, char *argv[])
     // initialconditions
     RealArray &u0 = ua[0];
     Real t = 0.;
-    for (i2 = nd2a; i2 <= nd2b; i2++)
-        for (i1 = nd1a; i1 <= nd1b; i1++)
-        {
-            u0(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t);
-        }
-
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1)
+        for (i2 = nd2a; i2 <= nd2b; i2++)
+            for (i1 = nd1a; i1 <= nd1b; i1++)
+            {
+                u0(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t);
+            }
+    }
     // Time-steprestriction:
     // ForwardEuler:kappa*dt*(1/dx^2+1/dy^2)<cfl*.5
     Real cfl = .9;
@@ -200,11 +228,15 @@ int main(int argc, char *argv[])
 
         if (option == scalarIndexing)
         {
-            for (i2 = n2a; i2 <= n2b; i2++)
-                for (i1 = n1a; i1 <= n1b; i1++)
-                {
-                    un(i1, i2) = u(i1, i2) + rx * (u(i1 + 1, i2) - 2. * u(i1, i2) + u(i1 - 1, i2)) + ry * (u(i1, i2 + 1) - 2. * u(i1, i2) + u(i1, i2 - 1));
-                }
+#pragma omp parallel default(shared) num_threads(thread)
+            {
+#pragma omp for private(i2, i1)
+                for (i2 = n2a; i2 <= n2b; i2++)
+                    for (i1 = n1a; i1 <= n1b; i1++)
+                    {
+                        un(i1, i2) = u(i1, i2) + rx * (u(i1 + 1, i2) - 2. * u(i1, i2) + u(i1 - 1, i2)) + ry * (u(i1, i2 + 1) - 2. * u(i1, i2) + u(i1, i2 - 1));
+                    }
+            }
         }
         else if (option == arrayIndexing)
         {
@@ -217,12 +249,15 @@ int main(int argc, char *argv[])
             double *un_p = un.getDataPointer();
 #define U(i1, i2) u_p[(i1 - nd1a) + nd1 * (i2 - nd2a)]
 #define UN(i1, i2) un_p[(i1 - nd1a) + nd1 * (i2 - nd2a)]
-
-            for (i2 = n2a; i2 <= n2b; i2++)
-                for (i1 = n1a; i1 <= n1b; i1++)
-                {
-                    UN(i1, i2) = U(i1, i2) + rx * (U(i1 + 1, i2) - 2. * U(i1, i2) + U(i1 - 1, i2)) + ry * (U(i1, i2 + 1) - 2. * U(i1, i2) + U(i1, i2 - 1));
-                }
+#pragma omp parallel default(shared) num_threads(thread)
+            {
+#pragma omp for private(i2, i1)
+                for (i2 = n2a; i2 <= n2b; i2++)
+                    for (i1 = n1a; i1 <= n1b; i1++)
+                    {
+                        UN(i1, i2) = U(i1, i2) + rx * (U(i1 + 1, i2) - 2. * U(i1, i2) + U(i1 - 1, i2)) + ry * (U(i1, i2 + 1) - 2. * U(i1, i2) + U(i1, i2 - 1));
+                    }
+            }
         }
         else if (option == fortranRoutine)
         {
@@ -234,14 +269,14 @@ int main(int argc, char *argv[])
                 double *un_p = un.getDataPointer();
                 heat2dUpdate(n1a, n1b, n2a, n2b,
                              u.getBase(0), u.getBound(0), u.getBase(1), u.getBound(1), // passarraydimensions
-                             *un_p, *u_p, rx, ry);
+                             *un_p, *u_p, rx, ry, thread);
             }
             else
             {
                 // thiswillalsowork--passfirstelementofunandu
                 heat2dUpdate(n1a, n1b, n2a, n2b,
                              u.getBase(0), u.getBound(0), u.getBase(1), u.getBound(1), // passarraydimensions
-                             un(nd1a, nd2a), u(nd1a, nd2a), rx, ry);
+                             un(nd1a, nd2a), u(nd1a, nd2a), rx, ry, thread);
             }
         }
         else
@@ -261,20 +296,28 @@ int main(int argc, char *argv[])
                     { // leftorrightside
                         i1 = gridIndexRange(side, axis);
                         int i1g = i1 - is; // indexofghostpoint
-                        for (i2 = nd2a; i2 <= nd2b; i2++)
+#pragma omp parallel default(shared) num_threads(thread)
                         {
-                            un(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t + dt);
-                            un(i1g, i2) = 3. * un(i1, i2) - 3. * u(i1 + is, i2) + un(i1 + 2 * is, i2); // extrapghost
+#pragma omp for private(i2)
+                            for (i2 = nd2a; i2 <= nd2b; i2++)
+                            {
+                                un(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t + dt);
+                                un(i1g, i2) = 3. * un(i1, i2) - 3. * u(i1 + is, i2) + un(i1 + 2 * is, i2); // extrapghost
+                            }
                         }
                     }
                     else
                     { // bottomortop
                         i2 = gridIndexRange(side, axis);
                         int i2g = i2 - is; // indexofghostpoint
-                        for (i1 = nd1a; i1 <= nd1b; i1++)
+#pragma omp parallel default(shared) num_threads(thread)
                         {
-                            un(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t + dt);
-                            un(i1, i2g) = 3. * un(i1, i2) - 3. * u(i1, i2 + is) + un(i1, i2 + 2 * is); // extrapghost
+#pragma omp for private(i1)
+                            for (i1 = nd1a; i1 <= nd1b; i1++)
+                            {
+                                un(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t + dt);
+                                un(i1, i2g) = 3. * un(i1, i2) - 3. * u(i1, i2 + is) + un(i1, i2 + 2 * is); // extrapghost
+                            }
                         }
                     }
                 }
@@ -295,13 +338,17 @@ int main(int argc, char *argv[])
     RealArray err(Rx, Ry);
 
     Real maxErr = 0., maxNorm = 0.;
-    for (i2 = n2a; i2 <= n2b; i2++)
-        for (i1 = n1a; i1 <= n1b; i1++)
-        {
-            err(i1, i2) = fabs(uc(i1, i2) - UTRUE(x(i1, i2, 0), x(i1, i2, 1), tFinal));
-            maxErr = max(err(i1, i2), maxErr);
-            maxNorm = max(uc(i1, i2), maxNorm);
-        }
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1) reduction(max : maxErr) reduction(max : maxNorm)
+        for (i2 = n2a; i2 <= n2b; i2++)
+            for (i1 = n1a; i1 <= n1b; i1++)
+            {
+                err(i1, i2) = fabs(uc(i1, i2) - UTRUE(x(i1, i2, 0), x(i1, i2, 1), tFinal));
+                maxErr = max(err(i1, i2), maxErr);
+                maxNorm = max(uc(i1, i2), maxNorm);
+            }
+    }
     maxErr /= max(maxNorm, REAL_MIN); // relativeerror
 
     printf("option=%s:numSteps=%dnx=%dmaxNorm=%8.2emaxRelErr=%8.2ecpuTimeStep=%9.2e(s)\n",

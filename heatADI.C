@@ -11,11 +11,11 @@ typedef intSerialArray IntegerArray;
 
 #include <float.h>
 #include <limits.h>
+#include <omp.h>
 #define REAL_EPSILON DBL_EPSILON
 #define REAL_MIN DBL_MIN
 
 // getCPU():Returnthecurrentwall-clocktimeinseconds
-#include "getCPU.h"
 
 // include commandstoparsecommandlinearguments
 #include "parseCommand.h"
@@ -25,6 +25,11 @@ typedef intSerialArray IntegerArray;
 
 // functiontowriteanarraytoamatlabreabablefile:
 #include "writeMatlabArray.h"
+
+inline double getCPU()
+{
+    return omp_get_wtime();
+}
 
 // define macrosforarrayreferences
 #define UN(i1, i2) un_p[(i1) + Ngx * (i2)]
@@ -40,15 +45,19 @@ typedef intSerialArray IntegerArray;
 //=====================================================================================
 // FormthetridiagonalmatrixfortheAFSscheme
 //=====================================================================================
-int formTridiagonalMatrix(RealArray &Ax, const Real kappa, const Real dt, const Real dx)
+int formTridiagonalMatrix(RealArray &Ax, const Real kappa, const Real dt, const Real dx, int thread)
 {
     const int n1a = Ax.getBase(1), n1b = Ax.getBound(1);
-
-    for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
+    int i1;
+#pragma omp parallel default(shared) num_threads(thread)
     {
-        Ax(0, i1) = -(.5 * kappa * dt) * (1. / (dx * dx));             // lowerdiagonal
-        Ax(1, i1) = 1. - (.5 * kappa * dt) * (-2. * (1. / (dx * dx))); // diagonal
-        Ax(2, i1) = -(.5 * kappa * dt) * (1. / (dx * dx));             // upperdiagonal
+#pragma omp for private(i1)
+        for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+        {
+            Ax(0, i1) = -(.5 * kappa * dt) * (1. / (dx * dx));             // lowerdiagonal
+            Ax(1, i1) = 1. - (.5 * kappa * dt) * (-2. * (1. / (dx * dx))); // diagonal
+            Ax(2, i1) = -(.5 * kappa * dt) * (1. / (dx * dx));             // upperdiagonal
+        }
     }
     Ax(0, n1a) = 0.;
     Ax(1, n1a) = 1.;
@@ -89,6 +98,7 @@ int main(int argc, char *argv[])
     boundaryCondition(1, 1) = dirichlet; // top
 
     string line;
+    int thread = 1;
     for (int i = 1; i < argc; i++)
     {
         line = argv[i];
@@ -108,6 +118,9 @@ int main(int argc, char *argv[])
         {
         }
         else if (parseCommand(line, "-matlabFileName=", matlabFileName))
+        {
+        }
+        else if (parseCommand(line, "-threads=", thread))
         {
         }
     }
@@ -156,13 +169,16 @@ int main(int argc, char *argv[])
     Range Rx(nd1a, nd1b), Ry(nd2a, nd2b);
     RealArray x(Rx, Ry, 2);
     int i1, i2;
-    for (i2 = nd2a; i2 <= nd2b; i2++)
-        for (i1 = nd1a; i1 <= nd1b; i1++)
-        {
-            x(i1, i2, 0) = xa + (i1 - n1a) * dx[0];
-            x(i1, i2, 1) = ya + (i2 - n2a) * dx[1];
-        }
-
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1)
+        for (i2 = nd2a; i2 <= nd2b; i2++)
+            for (i1 = nd1a; i1 <= nd1b; i1++)
+            {
+                x(i1, i2, 0) = xa + (i1 - n1a) * dx[0];
+                x(i1, i2, 1) = ya + (i2 - n2a) * dx[1];
+            }
+    }
     // allocatespaceforthesolution
     RealArray un(Rx, Ry); // holdsU_i^n
     RealArray u(Rx, Ry);  // tempspace
@@ -191,10 +207,10 @@ int main(int argc, char *argv[])
     Real *rhsx_p = rhsx.getDataPointer();
     Real *rhsy_p = rhsy.getDataPointer();
 
-    formTridiagonalMatrix(Ax, kappa, dt, dx[0]);
+    formTridiagonalMatrix(Ax, kappa, dt, dx[0], thread);
     factorTridiagonalMatrix(Ax);
 
-    formTridiagonalMatrix(Ay, kappa, dt, dx[1]);
+    formTridiagonalMatrix(Ay, kappa, dt, dx[1], thread);
     factorTridiagonalMatrix(Ay);
 
     const Real rxBy2 = .5 * kappa * dt / (dx[0] * dx[0]);
@@ -216,67 +232,135 @@ int main(int argc, char *argv[])
         // StageI:
         //[I+(.5*kappa*dt)*(D+xD-x)]U^*_ij=[I+(.5*kappa*dt)*(D+yD-y)]U^n_ij
         // Note:saveU^*inU
-        for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                U(i1, i2) = UN(i1, i2) + ryBy2 * (UN(i1, i2 + 1) - 2. * UN(i1, i2) + UN(i1, i2 - 1)); // rhs
-            }
-
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1)
+            for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+                {
+                    U(i1, i2) = UN(i1, i2) + ryBy2 * (UN(i1, i2 + 1) - 2. * UN(i1, i2) + UN(i1, i2 - 1)); // rhs
+                }
+        }
         // BoundaryconditionsW^*=g(x,t+dt/2)
         for (int side = 0; side <= 1; side++)
         {
             i1 = side == 0 ? n1a : n1b;
-            for (i2 = n2a; i2 <= n2b; i2++)
-                U(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), th); // left/right
+#pragma omp parallel default(shared) num_threads(thread)
+            {
+#pragma omp for private(i2)
+                for (i2 = n2a; i2 <= n2b; i2++)
+                    U(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), th); // left/right
+            }
             i2 = side == 0 ? n2a : n2b;
-            for (i1 = n2a; i1 <= n1b; i1++)
-                U(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), th); // bottom/top
+#pragma omp parallel default(shared) num_threads(thread)
+            {
+#pragma omp for private(i1)
+                for (i1 = n2a; i1 <= n1b; i1++)
+                    U(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), th); // bottom/top
+            }
         }
-
         //---tridiagonalsolvesinx-direction--
         Real cpu1 = getCPU();
-        for (i2 = n2a + 1; i2 <= n2b - 1; i2++) // excludetopanbottomboundaries
+        RealArray temp(thread, Ngx);
+#pragma omp parallel default(shared) num_threads(thread)
         {
-            for (i1 = n1a; i1 <= n1b; i1++)
-                RHSX(i1) = U(i1, i2);
+            int id = omp_get_thread_num();
+#pragma omp for private(i2)
+            for (i2 = n2a + 1; i2 <= n2b - 1; i2++) // excludetopanbottomboundaries
+            {
+                int i3;
 
-            solveTridiagonal(Ax, rhsx);
+                for (i3 = n1a; i3 <= n1b; i3++)
+                    temp(id, i3) = U(i3, i2);
 
-            for (i1 = n1a; i1 <= n1b; i1++)
-                U(i1, i2) = RHSX(i1); // saveU^*inU
+                const int iax = Ax.getBase(1), ibx = Ax.getBound(1);
+
+                const Real *Ax_p = Ax.getDataPointer();
+
+                //---forwardelimination--
+                for (i3 = iax + 1; i3 <= ibx; i3++)
+                {
+                    temp(id, i3) += AX(0, i3) * temp(id, i3 - 1);
+                }
+
+                //---back-substitution--
+
+                temp(i2, ibx) = temp(i2, ibx) / AX(1, ibx);
+                for (i3 = ibx - 1; i3 >= iax; i3--)
+                {
+                    temp(id, i3) = (temp(id, i3) - AX(2, i3) * temp(id, i3 + 1)) / AX(1, i3);
+                }
+
+                for (i3 = n1a; i3 <= n1b; i3++)
+                    U(i3, i2) = temp(id, i3); // saveU^*inU
+            }
         }
         cpuTriSolves += getCPU() - cpu1;
 
         //-----StageII
         //[I+(.5*kappa*dt)*(D+yD-y)]U^{n+1}_ij=[I+(.5*kappa*dt)*(D+xD-x)]U^*_ij
-        for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                UN(i1, i2) = U(i1, i2) + rxBy2 * (U(i1 + 1, i2) - 2. * U(i1, i2) + U(i1 - 1, i2)); // rhs
-            }
-
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1)
+            for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+                {
+                    UN(i1, i2) = U(i1, i2) + rxBy2 * (U(i1 + 1, i2) - 2. * U(i1, i2) + U(i1 - 1, i2)); // rhs
+                }
+        }
         // BoundaryconditionsW^*=g(x,t+dt/2)
         for (int side = 0; side <= 1; side++)
         {
             i1 = side == 0 ? n1a : n1b;
-            for (i2 = n2a; i2 <= n2b; i2++)
-                UN(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), tn); // left/right
+#pragma omp parallel default(shared) num_threads(thread)
+            {
+#pragma omp for private(i2)
+                for (i2 = n2a; i2 <= n2b; i2++)
+                    UN(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), tn); // left/right
+            }
             i2 = side == 0 ? n2a : n2b;
-            for (i1 = n2a; i1 <= n1b; i1++)
-                UN(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), tn); // bottom/top
+#pragma omp parallel default(shared) num_threads(thread)
+            {
+#pragma omp for private(i1)
+                for (i1 = n2a; i1 <= n1b; i1++)
+                    UN(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), tn); // bottom/top
+            }
         }
 
         //---tridiagonalsolvesiny-direction--
         cpu1 = getCPU();
-        for (i1 = n1a + 1; i1 <= n1b - 1; i1++) // excludeleftandrightboundaries
+        RealArray temp2(thread, Ngy);
+
+#pragma omp parallel default(shared) num_threads(thread)
         {
-            for (i2 = n2a; i2 <= n2b; i2++)
-                RHSY(i2) = UN(i1, i2);
+            int id = omp_get_thread_num();
+#pragma omp for private(i1)
+            for (i1 = n1a + 1; i1 <= n1b - 1; i1++) // excludeleftandrightboundaries
+            {
+                int i3;
+                for (i3 = n2a; i3 <= n2b; i3++)
+                    temp2(id, i3) = UN(i1, i3);
 
-            solveTridiagonal(Ay, rhsy);
+                const int iay = Ay.getBase(1), iby = Ay.getBound(1);
 
-            for (i2 = n2a; i2 <= n2b; i2++)
-                UN(i1, i2) = RHSY(i2);
+                const Real *Ay_p = Ay.getDataPointer();
+
+                //---forwardelimination--
+                for (i3 = iay + 1; i3 <= iby; i3++)
+                {
+                    temp2(id, i3) += AY(0, i3) * temp2(id, i3 - 1);
+                }
+
+                //---back-substitution--
+                temp2(i1, iby) = temp2(i1, iby) / AY(1, iby);
+                for (i3 = iby - 1; i3 >= iay; i3--)
+                {
+                    temp2(id, i3) = (temp2(id, i3) - AY(2, i3) * temp2(id, i3 + 1)) / AY(1, i3);
+                }
+
+                for (i3 = n2a; i3 <= n2b; i3++)
+                    UN(i1, i3) = temp2(id, i3);
+            }
         }
         cpuTriSolves += getCPU() - cpu1;
     }
@@ -293,13 +377,17 @@ int main(int argc, char *argv[])
     RealArray err(Ngx, Ngy);
 
     Real maxErr = 0., maxNorm = 0.;
-    for (i2 = n2a; i2 <= n2b; i2++)
-        for (i1 = n1a; i1 <= n1b; i1++)
-        {
-            err(i1, i2) = fabs(un(i1, i2) - UTRUE(x(i1, i2, 0), x(i1, i2, 1), tFinal));
-            maxErr = max(err(i1, i2), maxErr);
-            maxNorm = max(un(i1, i2), maxNorm);
-        }
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1) reduction(max : maxErr) reduction(max : maxNorm)
+        for (i2 = n2a; i2 <= n2b; i2++)
+            for (i1 = n1a; i1 <= n1b; i1++)
+            {
+                err(i1, i2) = fabs(un(i1, i2) - UTRUE(x(i1, i2, 0), x(i1, i2, 1), tFinal));
+                maxErr = max(err(i1, i2), maxErr);
+                maxNorm = max(un(i1, i2), maxNorm);
+            }
+    }
     maxErr /= max(maxNorm, REAL_MIN); // relativeerror
 
     printf("ADI:nx=%3dny=%3dNt=%3d,maxNorm=%8.2emaxRelErr=%8.2ecpu(s):total=%9.2e,triSolves=%9.2e\n",

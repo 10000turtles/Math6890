@@ -23,7 +23,7 @@ all=heatADI
 CC=gcc
 CXX=g++
 
-CCFLAGS= -fPIC -O1 -I$(APlusPlus)/include -I../../include
+CCFLAGS= -fPIC -O3 -I$(APlusPlus)/include -I../../include
 
 #ListoflibrariesforA++
 AppLibraries=-Wl,-rpath,$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static
@@ -37,9 +37,9 @@ LIBS=$(AppLibraries)
 %.o : %.C
 	$(CXX) $(CCFLAGS) -o $@ -c $<
 
-opt=-01
+opt=-O3
 FC=gfortran 
-FFLAGS=$(opt)-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none 
+FFLAGS= -fdefault-real-8 -fdefault-double-8 -ffree-line-length-none -fopenmp
 %.o: %.f90 
 	$(FC) $(FFLAGS) -o $@ -c $<
 
@@ -47,15 +47,25 @@ FFLAGS=$(opt)-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none
 
 heatADIFiles=heatADI.o tridiagonal.o 
 heatADI: $(heatADIFiles)
-	$(CXX) $(CCFLAGS) -o $@ $(heatADIFiles) $(LIBS)
+	$(CXX) $(CCFLAGS) -o $@ -fopenmp heatADI.C tridiagonal.o $(LIBS)
 
 heat1dImpFiles=heat2d.o heat2dUpdate.o
 heat2d: $(heat1dImpFiles)
 	$(CXX) $(CCFLAGS) -o $@ $(heat1dImpFiles) $(LIBS)
 
+poissonFiles = poisson.o
+poisson: $(poissonFiles)
+	$(CXX) $(CCFLAGS) -o $@ -fopenmp poisson.C $(LIBS)
 
+heatFiles = heat1d.o
+heat1d: $(heatFiles)
+	$(CXX) $(CCFLAGS) -o  $@ $(heatFiles) $(LIBS)
 
+heat1dp: $(heatFiles)
+	$(CXX) $(CCFLAGS) -o $@ -fopenmp heat1d.C  $(LIBS)
 
+heat2dp: $(heat1dImpFiles)
+	$(CXX) $(CCFLAGS) -o $@ -fopenmp heat2d.C heat2dUpdate.o $(LIBS)
 
 clean:; rm *.o
 

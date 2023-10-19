@@ -17,6 +17,8 @@ typedef intSerialArray IntegerArray;
 
 // getCPU():Returnthecurrentwall-clocktimeinseconds
 #include "getCPU.h"
+#include <omp.h>
+#include "math.h"
 
 // enumforBC’s
 enum BoundaryConditionsEnum
@@ -45,10 +47,10 @@ public:
 //-----------------------------------------------------------------------
 // Returnthemax-normresidual
 //-----------------------------------------------------------------------
-Real getMaxResidual(RealArray &u, RealArray &f, PoissonParameters &par)
+Real getMaxResidual(RealArray &u, RealArray &f, PoissonParameters &par, int thread)
 {
     const IntegerArray &gridIndexRange = par.gridIndexRange;
-    const Real(&dx)[] = par.dx; // Note:referencetoanarray
+    const Real(&dx)[2] = par.dx; // Note:referencetoanarray
 
     const Real dxSq = dx[0] * dx[0];
     const Real dySq = dx[1] * dx[1];
@@ -57,20 +59,25 @@ Real getMaxResidual(RealArray &u, RealArray &f, PoissonParameters &par)
     const int n2a = gridIndexRange(0, 1), n2b = gridIndexRange(1, 1);
 
     Real maxRes = 0.;
-    for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-        for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-        {
-            Real res = f(i1, i2) + ((u(i1 + 1, i2) - 2. * u(i1, i2) + u(i1 - 1, i2)) / dxSq + (u(i1, i2 + 1) - 2. * u(i1, i2) + u(i1, i2 - 1)) / dySq);
-            maxRes = max(maxRes, res);
-        }
+    int i1, i2;
 
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1) reduction(max : maxRes)
+        for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+            for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+            {
+                Real res = f(i1, i2) + ((u(i1 + 1, i2) - 2. * u(i1, i2) + u(i1 - 1, i2)) / dxSq + (u(i1, i2 + 1) - 2. * u(i1, i2) + u(i1, i2 - 1)) / dySq);
+                maxRes = max(maxRes, res);
+            }
+    }
     return maxRes;
 }
 
 //----------------------------------------------------------------------
 // Returnthemax-normerror
 //----------------------------------------------------------------------
-Real getMaxError(RealArray &u, RealArray &err, PoissonParameters &par)
+Real getMaxError(RealArray &u, RealArray &err, PoissonParameters &par, int thread)
 {
     const IntegerArray &gridIndexRange = par.gridIndexRange;
     const IntegerArray &dimension = par.dimension;
@@ -78,7 +85,7 @@ Real getMaxError(RealArray &u, RealArray &err, PoissonParameters &par)
     const RealArray &x = par.x;
     const Real &tol = par.tol;
     const RealArray &uTrue = par.uTrue;
-    const Real(&dx)[] = par.dx; // Note:referencetoanarray
+    const Real(&dx)[2] = par.dx; // Note:referencetoanarray
     const int &maxIterations = par.maxIterations;
     const int &debug = par.debug;
 
@@ -86,15 +93,19 @@ Real getMaxError(RealArray &u, RealArray &err, PoissonParameters &par)
     const int n2a = gridIndexRange(0, 1), n2b = gridIndexRange(1, 1);
 
     Real maxErr = 0.;
-    for (int i2 = n2a; i2 <= n2b; i2++)
-        for (int i1 = n1a; i1 <= n1b; i1++)
-        {
-            Real xi = x(i1, i2, 0);
-            Real yi = x(i1, i2, 1);
-            err(i1, i2) = fabs(u(i1, i2) - uTrue(i1, i2));
-            maxErr = max(err(i1, i2), maxErr);
-        }
-
+    int i1, i2;
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1) reduction(max : maxErr)
+        for (i2 = n2a; i2 <= n2b; i2++)
+            for (i1 = n1a; i1 <= n1b; i1++)
+            {
+                Real xi = x(i1, i2, 0);
+                Real yi = x(i1, i2, 1);
+                err(i1, i2) = fabs(u(i1, i2) - uTrue(i1, i2));
+                maxErr = max(err(i1, i2), maxErr);
+            }
+    }
     if (n1b - n1a + 1 <= 10)
     {
         u.display("u");
@@ -111,7 +122,7 @@ Real getMaxError(RealArray &u, RealArray &err, PoissonParameters &par)
 //--------------------------------------------
 // Jacobiiteration
 //--------------------------------------------
-int jacobiIteration(RealArray &u, RealArray &f, PoissonParameters &par)
+Real jacobiIteration(RealArray &u, RealArray &f, PoissonParameters &par, int thread)
 {
     const IntegerArray &gridIndexRange = par.gridIndexRange;
     const IntegerArray &dimension = par.dimension;
@@ -119,7 +130,7 @@ int jacobiIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     const RealArray &x = par.x;
     const Real &tol = par.tol;
     const RealArray &uTrue = par.uTrue;
-    const Real(&dx)[] = par.dx; // Note:referencetoanarray
+    const Real(&dx)[2] = par.dx; // Note:referencetoanarray
     const int &maxIterations = par.maxIterations;
     const int &debug = par.debug;
     const int &intervalToCheckResidual = par.intervalToCheckResidual;
@@ -149,7 +160,7 @@ int jacobiIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     Real omega = 1.;
 
     // Realres0=getMaxResidual(ua[current],f,h);
-    Real res0 = getMaxResidual(ua[current], f, par);
+    Real res0 = getMaxResidual(ua[current], f, par, thread);
     Real maxRes = res0, maxResOld = res0;
     Real CR = 1.;
 
@@ -166,19 +177,23 @@ int jacobiIteration(RealArray &u, RealArray &f, PoissonParameters &par)
         Real *un_p = un.getDataPointer();
 
         // omega-JacobiIteration
-        for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                Real z = .25 * (h * h * F(i1, i2) + U(i1 + 1, i2) + U(i1 - 1, i2) + U(i1, i2 + 1) + U(i1, i2 - 1));
-                UN(i1, i2) = U(i1, i2) + omega * (z - U(i1, i2));
-            }
-
+        int i1, i2;
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1)
+            for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+                {
+                    Real z = .25 * (h * h * F(i1, i2) + U(i1 + 1, i2) + U(i1 - 1, i2) + U(i1, i2 + 1) + U(i1, i2 - 1));
+                    UN(i1, i2) = U(i1, i2) + omega * (z - U(i1, i2));
+                }
+        }
         current = next;
 
         if ((n % intervalToCheckResidual) == 0 || n == (maxIterations - 1))
         {
             // checkforconvergence
-            maxRes = getMaxResidual(u, f, par);
+            maxRes = getMaxResidual(u, f, par, thread);
             CR = pow((maxRes / maxResOld), 1. / intervalToCheckResidual);
             maxResOld = maxRes;
 
@@ -204,8 +219,8 @@ int jacobiIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     u = ua[current];
     RealArray err(Rx, Ry);
 
-    Real maxErr = getMaxError(u, err, par);
-    maxRes = getMaxResidual(u, f, par);
+    Real maxErr = getMaxError(u, err, par, thread);
+    maxRes = getMaxResidual(u, f, par, thread);
 
     // Averageconvergencerate:
     Real aveCR = pow((maxRes / res0), 1. / max(1, numIterations));
@@ -214,13 +229,13 @@ int jacobiIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     printf("Jac:omega=%4.2fIts=%6dres=%8.2eerr=%8.2eCR=%7.5faveCR=%7.5fACR=%7.5fcpu=%7.1escpu/it=%7.1es\n",
            omega, numIterations, maxRes, maxErr, CR, aveCR, ACR, cpu, cpu / numIterations);
 
-    return numIterations;
+    return cpu;
 }
 
 //--------------------------------------------
 // Gauss-SeidelorSOR
 //--------------------------------------------
-int gaussSeidelIteration(RealArray &u, RealArray &f, PoissonParameters &par)
+Real gaussSeidelIteration(RealArray &u, RealArray &f, PoissonParameters &par, int thread)
 {
     const IntegerArray &gridIndexRange = par.gridIndexRange;
     const IntegerArray &dimension = par.dimension;
@@ -228,16 +243,16 @@ int gaussSeidelIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     const RealArray &x = par.x;
     const Real &tol = par.tol;
     const RealArray &uTrue = par.uTrue;
-    const Real(&dx)[] = par.dx; // Note:referencetoanarray
+    const Real(&dx)[2] = par.dx; // Note:referencetoanarray
     const int &maxIterations = par.maxIterations;
     const int &debug = par.debug;
     const int &intervalToCheckResidual = par.intervalToCheckResidual;
 
-    const intn1a = gridIndexRange(0, 0), n1b = gridIndexRange(1, 0);
-    const intn2a = gridIndexRange(0, 1), n2b = gridIndexRange(1, 1);
-    const intnd1a = dimension(0, 0), nd1b = dimension(1, 0);
-    const intnd2a = dimension(0, 1), nd2b = dimension(1, 1);
-    const intnd1 = nd1b - nd1a + 1;
+    const int n1a = gridIndexRange(0, 0), n1b = gridIndexRange(1, 0);
+    const int n2a = gridIndexRange(0, 1), n2b = gridIndexRange(1, 1);
+    const int nd1a = dimension(0, 0), nd1b = dimension(1, 0);
+    const int nd2a = dimension(0, 1), nd2b = dimension(1, 1);
+    const int nd1 = nd1b - nd1a + 1;
     Range Rx(nd1a, nd1b), Ry(nd2a, nd2b);
 
     const Real pi = M_PI;
@@ -248,7 +263,7 @@ int gaussSeidelIteration(RealArray &u, RealArray &f, PoissonParameters &par)
 
     Real omega = 2. / (1. + sin(pi * h)); // optimalomega
 
-    Real res0 = getMaxResidual(u, f, par);
+    Real res0 = getMaxResidual(u, f, par, thread);
     Real maxRes = res0, maxResOld = maxRes, CR = 1.;
 
     const Real *f_p = f.getDataPointer();
@@ -258,17 +273,21 @@ int gaussSeidelIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     for (n = 0; n < maxIterations; n++)
     {
         // omega-GSIteration
-        for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                Real z = .25 * (h * h * F(i1, i2) + U(i1 + 1, i2) + U(i1 - 1, i2) + U(i1, i2 + 1) + U(i1, i2 - 1));
-                U(i1, i2) = U(i1, i2) + omega * (z - U(i1, i2));
-            }
-
+        int i1, i2;
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1)
+            for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+                {
+                    Real z = .25 * (h * h * F(i1, i2) + U(i1 + 1, i2) + U(i1 - 1, i2) + U(i1, i2 + 1) + U(i1, i2 - 1));
+                    U(i1, i2) = U(i1, i2) + omega * (z - U(i1, i2));
+                }
+        }
         if ((n % intervalToCheckResidual) == 0 || n == (maxIterations - 1))
         {
             // checkforconvergence
-            maxRes = getMaxResidual(u, f, par);
+            maxRes = getMaxResidual(u, f, par, thread);
 
             CR = pow((maxRes / maxResOld), 1. / intervalToCheckResidual);
             maxResOld = maxRes;
@@ -294,24 +313,24 @@ int gaussSeidelIteration(RealArray &u, RealArray &f, PoissonParameters &par)
 
     //---computeerrors--
     RealArray err(Rx, Ry);
-    Real maxErr = getMaxError(u, err, par);
-    maxRes = getMaxResidual(u, f, par);
+    Real maxErr = getMaxError(u, err, par, thread);
+    maxRes = getMaxResidual(u, f, par, thread);
 
     // Averageconvergencerate:
     Real aveCR = pow((maxRes / res0), 1. / max(1, numIterations));
     // Asymptoticconvergencerate:
     Real ACR = omega - 1.;
-    printf("GS:omega=%4.2fIts=%6dres=%8.2eerr=%8.2eCR=%7.5faveCR=%7.5fACR=%7.5fcpu=%7.1escpu/it=%7.1es\n",
+    printf("GS: omega=%4.2f Its=%6d res=%8.2e err=%8.2e CR=%7.5f aveCR=%7.5f ACR=%7.5f cpu=%7.1e scpu/it=%7.1e s\n",
            omega, numIterations, maxRes, maxErr, CR, aveCR, ACR, cpu, cpu / numIterations);
 
-    return numIterations;
+    return cpu;
 }
 
 //--------------------------------------------
 // Red-BlackGauss-Seideliteration
 //--------------------------------------------
 // intredBlackIteration(RealArray&u,RealArray&f,Realxa,Realya,Realdx[],intmaxIterations,Realtol,RealArray&uTrue)
-int redBlackIteration(RealArray &u, RealArray &f, PoissonParameters &par)
+Real redBlackIteration(RealArray &u, RealArray &f, PoissonParameters &par, int thread)
 {
 
     const IntegerArray &gridIndexRange = par.gridIndexRange;
@@ -320,7 +339,7 @@ int redBlackIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     const RealArray &x = par.x;
     const Real &tol = par.tol;
     const RealArray &uTrue = par.uTrue;
-    const Real(&dx)[] = par.dx; // Note:referencetoanarray
+    const Real(&dx)[2] = par.dx; // Note:referencetoanarray
     const int &maxIterations = par.maxIterations;
     const int &debug = par.debug;
     const int &intervalToCheckResidual = par.intervalToCheckResidual;
@@ -351,7 +370,7 @@ int redBlackIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     // thisistheoptimalomegaforANYordering(Owlbookp32)
     const Real omega = 2. / (1. + sin(pi * h));
 
-    Real res0 = getMaxResidual(ua[current], f, par);
+    Real res0 = getMaxResidual(ua[current], f, par, thread);
     Real maxRes = res0, maxResOld = res0;
     Real CR = 1.;
 
@@ -372,38 +391,45 @@ int redBlackIteration(RealArray &u, RealArray &f, PoissonParameters &par)
         //(1)Useifstatement
         //(2)Useloopswithstrideof2
         // Note:loopsarefasterifLHSarrayisdifferentfromRHSarrays
-        for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                if ((i1 + i2) % 2 == 0) // redpoints
+        int i1, i2;
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1)
+            for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
                 {
-                    Real z = .25 * (h * h * F(i1, i2) + U(i1 + 1, i2) + U(i1 - 1, i2) + U(i1, i2 + 1) + U(i1, i2 - 1));
-                    UN(i1, i2) = U(i1, i2) + omega * (z - U(i1, i2));
+                    if ((i1 + i2) % 2 == 0) // redpoints
+                    {
+                        Real z = .25 * (h * h * F(i1, i2) + U(i1 + 1, i2) + U(i1 - 1, i2) + U(i1, i2 + 1) + U(i1, i2 - 1));
+                        UN(i1, i2) = U(i1, i2) + omega * (z - U(i1, i2));
+                    }
+                    else
+                    {
+                        UN(i1, i2) = U(i1, i2);
+                    }
                 }
-                else
+        }
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1)
+            for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
                 {
-                    UN(i1, i2) = U(i1, i2);
+                    if ((i1 + i2) % 2 == 1) // blackpoints
+                    {
+                        Real z = .25 * (h * h * F(i1, i2) + UN(i1 + 1, i2) + UN(i1 - 1, i2) + UN(i1, i2 + 1) + UN(i1, i2 - 1));
+                        U(i1, i2) = UN(i1, i2) + omega * (z - UN(i1, i2));
+                    }
+                    else
+                    {
+                        U(i1, i2) = UN(i1, i2);
+                    }
                 }
-            }
-
-        for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                if ((i1 + i2) % 2 == 1) // blackpoints
-                {
-                    Real z = .25 * (h * h * F(i1, i2) + UN(i1 + 1, i2) + UN(i1 - 1, i2) + UN(i1, i2 + 1) + UN(i1, i2 - 1));
-                    U(i1, i2) = UN(i1, i2) + omega * (z - UN(i1, i2));
-                }
-                else
-                {
-                    U(i1, i2) = UN(i1, i2);
-                }
-            }
-
+        }
         if ((n % intervalToCheckResidual) == 0 || n == (maxIterations - 1))
         {
             // checkforconvergence
-            maxRes = getMaxResidual(u, f, par);
+            maxRes = getMaxResidual(u, f, par, thread);
             CR = pow((maxRes / maxResOld), 1. / intervalToCheckResidual);
             maxResOld = maxRes;
 
@@ -428,23 +454,23 @@ int redBlackIteration(RealArray &u, RealArray &f, PoissonParameters &par)
     //---computeerrors--
     u = ua[current];
     RealArray err(Rx, Ry);
-    Real maxErr = getMaxError(u, err, par);
-    maxRes = getMaxResidual(u, f, par);
+    Real maxErr = getMaxError(u, err, par, thread);
+    maxRes = getMaxResidual(u, f, par, thread);
 
     // Averageconvergencerate:
     Real aveCR = pow((maxRes / res0), 1. / max(1, numIterations));
     // Asymptoticconvergencerate:
     Real ACR = omega - 1.;
-    printf("RB:omega=%4.2fIts=%6dres=%8.2eerr=%8.2eCR=%7.5faveCR=%7.5fACR=%7.5fcpu=%7.1escpu/it=%7.1es\n",
+    printf("RB: omega=%4.2f Its=%6d res=%8.2e err=%8.2e CR=%7.5faveCR=%7.5fACR=%7.5fcpu=%7.1escpu/it=%7.1es\n",
            omega, numIterations, maxRes, maxErr, CR, aveCR, ACR, cpu, cpu / numIterations);
 
-    return numIterations;
+    return cpu;
 }
 
 //--------------------------------------------
 // ConjugateGradientiteration
 //--------------------------------------------
-intconjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par)
+Real conjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par, int thread)
 {
     const IntegerArray &gridIndexRange = par.gridIndexRange;
     const IntegerArray &dimension = par.dimension;
@@ -452,7 +478,7 @@ intconjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par
     const RealArray &x = par.x;
     const Real &tol = par.tol;
     const RealArray &uTrue = par.uTrue;
-    const Real(&dx)[] = par.dx; // Note:referencetoanarray
+    const Real(&dx)[2] = par.dx; // Note:referencetoanarray
     const int &maxIterations = par.maxIterations;
     const int &debug = par.debug;
     const int &intervalToCheckResidual = par.intervalToCheckResidual;
@@ -481,27 +507,36 @@ intconjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par
 #define R(i1, i2) r_p[(i1) + nd1 * (i2)]
 #define P(i1, i2) p_p[(i1) + nd1 * (i2)]
 
-    Realcpu1 = getCPU();
+    Real cpu1 = getCPU();
 
     u = 0.; // initialguess--***FIXMEfornon-zeroinitialguess***
     r = 0;  // initialresidualgoeshere
-    for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-        for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-        {
-            R(i1, i2) = F(i1, i2); // initialresidual
-            P(i1, i2) = R(i1, i2); // initialsearchdirection
-        }
 
+    int i1, i2;
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1)
+
+        for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+            for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+            {
+                R(i1, i2) = F(i1, i2); // initialresidual
+                P(i1, i2) = R(i1, i2); // initialsearchdirection
+            }
+    }
     Real alpha, beta, rNormSquared, rNormSquaredNew, pz;
 
     // rNormSquared=r^Tr
     rNormSquared = 0.;
-    for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-        for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-        {
-            rNormSquared += R(i1, i2) * R(i1, i2);
-        }
-
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1) reduction(+ : rNormSquared)
+        for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+            for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+            {
+                rNormSquared += R(i1, i2) * R(i1, i2);
+            }
+    }
     Real res0 = sqrt(rNormSquared);
     Real maxRes = res0, maxResOld = res0;
     Real CR = 1.;
@@ -518,13 +553,16 @@ intconjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par
         // pz=p^Tz
         // Note:A=-Delta
         pz = 0.;
-        for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                Z(i1, i2) = -((P(i1 + 1, i2) - 2. * P(i1, i2) + P(i1 - 1, i2)) / dxSq + (P(i1, i2 + 1) - 2. * P(i1, i2) + P(i1, i2 - 1)) / dySq);
-                pz += P(i1, i2) * Z(i1, i2);
-            }
-
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1) reduction(+ : pz)
+            for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+                {
+                    Z(i1, i2) = -((P(i1 + 1, i2) - 2. * P(i1, i2) + P(i1 - 1, i2)) / dxSq + (P(i1, i2 + 1) - 2. * P(i1, i2) + P(i1, i2 - 1)) / dySq);
+                    pz += P(i1, i2) * Z(i1, i2);
+                }
+        }
         ////pz=p^Tz
         // pz=0.;
         // for(inti2=n2a+1;i2<=n2b-1;i2++)
@@ -540,14 +578,17 @@ intconjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par
         // r-=alpha*z
         // rNormSquaredNew=r^Tr
         rNormSquaredNew = 0.;
-        for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                U(i1, i2) += alpha * P(i1, i2); // newsolution
-                R(i1, i2) -= alpha * Z(i1, i2); // residual
-                rNormSquaredNew += R(i1, i2) * R(i1, i2);
-            }
-
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1) reduction(+ : rNormSquaredNew)
+            for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
+                {
+                    U(i1, i2) += alpha * P(i1, i2); // newsolution
+                    R(i1, i2) -= alpha * Z(i1, i2); // residual
+                    rNormSquaredNew += R(i1, i2) * R(i1, i2);
+                }
+        }
         ////r-=alpha*z
         // rNormSquaredNew=0.;
         // for(inti2=n2a+1;i2<=n2b-1;i2++)
@@ -570,17 +611,20 @@ intconjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par
         rNormSquared = rNormSquaredNew;
 
         // p=r+beta*p
-        for (int i2 = n2a + 1; i2 <= n2b - 1; i2++)
-            for (int i1 = n1a + 1; i1 <= n1b - 1; i1++)
-            {
-                P(i1, i2) = R(i1, i2) + beta * P(i1, i2); // newsearchdirection
-            }
-
+#pragma omp parallel default(shared) num_threads(thread)
+        {
+#pragma omp for private(i2, i1)
+            for (i2 = n2a + 1; i2 <= n2b - 1; i2++)
+                for (i1 = n1a + 1; i1 <= n1b - 1; i1++)
+                {
+                    P(i1, i2) = R(i1, i2) + beta * P(i1, i2); // newsearchdirection
+                }
+        }
         if ((n % intervalToCheckResidual) == 0 || n == (maxIterations - 1))
         {
             // checkforconvergence****WESHOULDREALLYUSEEXISTING2-normRESIDUAL****
             // Dothisfornowtobeconsistentwithotherschemes.
-            maxRes = getMaxResidual(u, f, par);
+            maxRes = getMaxResidual(u, f, par, thread);
             CR = pow((maxRes / maxResOld), 1. / max(1, n - nOld));
             maxResOld = maxRes;
             nOld = n;
@@ -605,8 +649,8 @@ intconjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par
 
     //---computeerrors--
     RealArray err(Rx, Ry);
-    Real maxErr = getMaxError(u, err, par);
-    maxRes = getMaxResidual(u, f, par);
+    Real maxErr = getMaxError(u, err, par, thread);
+    maxRes = getMaxResidual(u, f, par, thread);
 
     // Averageconvergencerate:
     Real aveCR = pow((maxRes / res0), 1. / max(1, numIterations));
@@ -616,7 +660,7 @@ intconjugateGradientIteration(RealArray &u, RealArray &f, PoissonParameters &par
     printf("CG:Its=%6dres=%8.2eerr=%8.2eCR=%7.5faveCR=%7.5fACR=%7.5fcpu=%7.1escpu/it=%7.1es\n",
            numIterations, maxRes, maxErr, CR, aveCR, ACR, cpu, cpu / numIterations);
 
-    return numIterations;
+    return cpu;
 }
 
 int main(int argc, char *argv[])
@@ -630,7 +674,7 @@ int main(int argc, char *argv[])
     const Real pi = M_PI; // 4.*atan2(1.,1.);
 
     // Parametersarestoredhere:
-    PoissonParameter spar;
+    PoissonParameters par;
 
     // Makereferencestoparametersforclarity
     IntegerArray &gridIndexRange = par.gridIndexRange;
@@ -639,7 +683,7 @@ int main(int argc, char *argv[])
     RealArray &x = par.x;
     Real &tol = par.tol;
     RealArray &uTrue = par.uTrue;
-    Real(&dx)[] = par.dx; // Note:referencetoanarray
+    Real(&dx)[2] = par.dx; // Note:referencetoanarray
     int &maxIterations = par.maxIterations;
     int &debug = par.debug;
     int &intervalToCheckResidual = par.intervalToCheckResidual;
@@ -654,6 +698,8 @@ int main(int argc, char *argv[])
     maxIterations = 1000;
     tol = 1.e-3;
     int nx = 100, ny = nx;
+    int thread = 1;
+    int scallingTest = 0;
 
     string line;
     for (int i = 1; i < argc; i++)
@@ -673,13 +719,19 @@ int main(int argc, char *argv[])
         else if (parseCommand(line, "-tol=", tol))
         {
         }
+        else if (parseCommand(line, "-threads=", thread))
+        {
+        }
+        else if (parseCommand(line, "-scallingTest=", scallingTest))
+        {
+        }
     }
 
     printf("-----------------------------------------------------------------\n");
     printf("---------SolvethePoissonEquationintwodimensions----------\n");
     printf("-Delta(u)=f\n");
     printf("DirichletBCs\n");
-    printf("nx=%d,ny=%d,maxIterations=%d,tol=%9.2e\n", nx, ny, maxIterations, tol);
+    printf("nx=%d, ny=%d, maxIterations=%d, tol=%9.2e\n", nx, ny, maxIterations, tol);
     printf("-----------------------------------------------------------------\n");
 
     const Real kx = 1., ky = 1.;
@@ -737,43 +789,84 @@ int main(int argc, char *argv[])
     dx[1] = (yb - ya) / ny;
 
     int i1, i2;
-    for (i2 = nd2a; i2 <= nd2b; i2++)
-        for (i1 = nd1a; i1 <= nd1b; i1++)
-        {
-            x(i1, i2, 0) = xa + (i1 - n1a) * dx[0];
-            x(i1, i2, 1) = ya + (i2 - n2a) * dx[1];
-        }
-
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1)
+        for (i2 = nd2a; i2 <= nd2b; i2++)
+            for (i1 = nd1a; i1 <= nd1b; i1++)
+            {
+                x(i1, i2, 0) = xa + (i1 - n1a) * dx[0];
+                x(i1, i2, 1) = ya + (i2 - n2a) * dx[1];
+            }
+    }
     RealArray f(Rx, Ry);
     uTrue.redim(Rx, Ry);
 
     RealArray u(Rx, Ry);
 
     Real xi, yi;
-    for (int i2 = nd2a; i2 <= nd2b; i2++)
-        for (int i1 = nd1a; i1 <= nd1b; i1++)
+#pragma omp parallel default(shared) num_threads(thread)
+    {
+#pragma omp for private(i2, i1, xi, yi)
+        for (i2 = nd2a; i2 <= nd2b; i2++)
+            for (i1 = nd1a; i1 <= nd1b; i1++)
+            {
+                xi = x(i1, i2, 0);
+                yi = x(i1, i2, 1);
+                f(i1, i2) = FORCE(xi, yi);
+                uTrue(i1, i2) = UTRUE(xi, yi);
+            }
+    }
+    if (scallingTest == 0)
+    {
+        //=====JACOBI=====
+        u = 0.; // initialguess
+        jacobiIteration(u, f, par, thread);
+
+        //=====Gauss-Seidel=====
+        u = 0.; // initialguess
+        gaussSeidelIteration(u, f, par, thread);
+
+        //=====Red-BlackGauss-Seidel=====
+        u = 0.; // initialguess
+        redBlackIteration(u, f, par, thread);
+
+        //====ConjugateGradient=========
+        u = 0.; // initialguess
+        conjugateGradientIteration(u, f, par, thread);
+    }
+    if (scallingTest > 0)
+    {
+        Real firstTime;
+        char s[1000];
+        for (int i = 0; i < 7; i++)
         {
-            xi = x(i1, i2, 0);
-            yi = x(i1, i2, 1);
-            f(i1, i2) = FORCE(xi, yi);
-            uTrue(i1, i2) = UTRUE(xi, yi);
+            Real time = 0;
+
+            u = 0.;
+            if (scallingTest == 1)
+            {
+                time = jacobiIteration(u, f, par, int(pow(2, i)));
+            }
+            if (scallingTest == 2)
+            {
+                time = gaussSeidelIteration(u, f, par, int(pow(2, i)));
+            }
+            if (scallingTest == 3)
+            {
+                time = redBlackIteration(u, f, par, int(pow(2, i)));
+            }
+            if (scallingTest == 4)
+            {
+                time = conjugateGradientIteration(u, f, par, int(pow(2, i)));
+            }
+            if (i == 0)
+                firstTime = time;
+
+            sprintf(s, "%s\n%d  %f  %f  %f", s, int(pow(2, i)), time, firstTime / time, firstTime / time / int(pow(2, i)));
         }
-
-    //=====JACOBI=====
-    u = 0.; // initialguess
-    jacobiIteration(u, f, par);
-
-    //=====Gauss-Seidel=====
-    u = 0.; // initialguess
-    gaussSeidelIteration(u, f, par);
-
-    //=====Red-BlackGauss-Seidel=====
-    u = 0.; // initialguess
-    redBlackIteration(u, f, par);
-
-    //====ConjugateGradient=========
-    u = 0.; // initialguess
-    conjugateGradientIteration(u, f, par);
+        printf("%s\n", s);
+    }
 
     return 0;
 }
