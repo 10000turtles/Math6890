@@ -1,5 +1,0 @@
-./heat1dImp -sol=true -Nx=10 -bc1=d -bc2=d -matlabFileName=heat1d10.m
- ./heat1dImp -sol=true -Nx=20 -bc1=d -bc2=d -matlabFileName=heat1d20.m
- ./heat1dImp -sol=true -Nx=40 -bc1=d -bc2=d -matlabFileName=heat1d40.m
- ./heat1dImp -sol=true -Nx=80 -bc1=d -bc2=d -matlabFileName=heat1d80.m
-./heat1dImp -sol=true -Nx=160 -bc1=d -bc2=d -matlabFileName=heat1d160.m
