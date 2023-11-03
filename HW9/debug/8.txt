@@ -1,0 +1,8 @@
+Usage: heat2d -nx = <i> -option=[0|1|2|3] -tFinal=<f> -debug = <i> -saveMatlab=[0|1|2] -matlabFile=<s>
+   option : 0 = scalarIndexing, 1 = arrayIndexing, 2=cIndexing, 3=fortranRoutine
+------ Solve the Heat Equation in two dimensions -------- 
+      option=0 : scalarIndexing 
+      saveMatlab=0, matlabFileName = heat2d.m
+      kappa = 0.1, nx = 1000, ny=1000, tFinal =   0.01, kx = 2, ky = 3
+      n1a_l: 504, n1b_l: 566
+option=scalarIndexing: numSteps=4445, nx = 1000, maxNorm=8.20e-01, maxRelErr=6.77e-16, cpuTimeStep= 6.36e+00(s)
