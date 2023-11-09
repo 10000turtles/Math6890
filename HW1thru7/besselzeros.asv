@@ -1,0 +1,12 @@
+
+
+for k=1:5
+    for n =0:5
+        root = fzero(@(z) besselj(n,z),1);
+        
+
+        fprintf("root: %f, error: %f",root,)
+        disp(root)
+        disp(besselj(n, root));
+    end
+end

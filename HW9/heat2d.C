@@ -90,8 +90,6 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; i++)
     {
         line = argv[i];
-        // printf("Input: argv[%d] = [%s]\n",i,line.c_str()));
-
         if (parseCommand(line, "-nx=", nx))
         {
             ny = nx;
@@ -180,20 +178,16 @@ int main(int argc, char *argv[])
     static const Real c0 = .2, c1 = .1, c2 = .3;
     static const Real b0 = 1., b1 = .5, b2 = .25;
     static const Real a0 = 1., a1 = .3, a2 = 0.;
-#define UTRUE(x, y, t) (b0 + (x) * (b1 + (x) * b2)) * (c0 + (y) * (c1 + (y) * c2)) * (a0 + (t) * (a1 + (t) * a2))
-#define UTRUET(x, y, t) (b0 + (x) * (b1 + (x) * b2)) * (c0 + (y) * (c1 + (y) * c2)) * (a1 + 2. * (t) * a2)
-#define UTRUEXX(x, y, t) (2. * b2) * (c0 + (y) * (c1 + (y) * c2)) * (a0 + (t) * (a1 + (t) * a2))
-#define UTRUEYY(x, y, t) (b0 + (x) * (b1 + (x) * b2)) * (2. * c2) * (a0 + (t) * (a1 + (t) * a2))
+#define UTRUE(x, y, t) (b0 + (x) * (b1 + (x)*b2)) * (c0 + (y) * (c1 + (y)*c2)) * (a0 + (t) * (a1 + (t)*a2))
+#define UTRUET(x, y, t) (b0 + (x) * (b1 + (x)*b2)) * (c0 + (y) * (c1 + (y)*c2)) * (a1 + 2. * (t)*a2)
+#define UTRUEXX(x, y, t) (2. * b2) * (c0 + (y) * (c1 + (y)*c2)) * (a0 + (t) * (a1 + (t)*a2))
+#define UTRUEYY(x, y, t) (b0 + (x) * (b1 + (x)*b2)) * (2. * c2) * (a0 + (t) * (a1 + (t)*a2))
 #define FORCE(x, y, t) (UTRUET(x, y, t) - kappa * (UTRUEXX(x, y, t) + UTRUEYY(x, y, t)))
     string optionName = option == scalarIndexing ? "scalarIndexing" : option == arrayIndexing ? "arrayIndexing "
                                                                   : option == cIndexing       ? "cIndexing     "
                                                                   : option == fortranRoutine  ? "fortranRoutine"
                                                                                               : "uknown";
-    fprintf(debug_file, "------ Solve the Heat Equation in two dimensions -------- \n");
-    fprintf(debug_file, "      option=%d : %s \n", option, optionName.c_str());
-    fprintf(debug_file, "      saveMatlab=%d, matlabFileName = %s\n", saveMatlab, matlabFileName.c_str());
-    fprintf(debug_file, "      kappa = %.3g, nx = %d, ny=%d, tFinal = %6.2f, kx = %g, ky = %g\n", kappa, nx, ny, tFinal, kx, ky);
-    fprintf(debug_file, "      n1a_l: %d, n1b_l: %d\n", n1a_l, n1b_l);
+
     // store two time levels
     RealArray ua[2];
     ua[0].redim(Rx, Ry);
@@ -266,7 +260,6 @@ int main(int argc, char *argv[])
                             int i1g = i1 - is; // index of ghost point
                             for (i2 = nd2a; i2 <= nd2b; i2++)
                             {
-                                // fprintf(debug_file, "Filling in exact to un(%d,%d) on rank %d\n", i1, i2, rank);
                                 un(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t + dt);
                                 un(i1g, i2) = 3. * un(i1, i2) - 3. * u(i1 + is, i2) + un(i1 + 2 * is, i2); // extrap ghost
                             }
@@ -281,15 +274,13 @@ int main(int argc, char *argv[])
                             Real *buff2 = new Real[nd2b - nd2a + 1];
                             for (i2 = nd2a; i2 <= nd2b; i2++)
                             {
-                                // fprintf(debug_file, "Copying un(%d,%d): %f  to buff2[%d]  on rank %d\n", i1, i2, un(i1, i2), i2 - nd2a, rank);
                                 buff[i2 - nd2a] = un(i1, i2);
                             }
                             MPI_Send(buff, nd2b - nd2a + 1, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD);
                             MPI_Recv(buff2, nd2b - nd2a + 1, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                             for (i2 = nd2a + 1; i2 <= nd2b - 1; i2++)
                             {
-                                // fprintf(debug_file, "Copying buff2[%d]: %f to un(%d,%d), exact value: %f\n", i2 - nd2a, buff2[i2 - nd2a], i1g, i2, UTRUE(x(i1g, i2, 0), x(i1g, i2, 1), t + dt));
-                                // fflush(debug_file);
+
                                 un(i1g, i2) = buff2[i2 - nd2a];
                             }
                         }
@@ -303,15 +294,13 @@ int main(int argc, char *argv[])
                             Real *buff2 = new Real[nd2b - nd2a + 1];
                             for (i2 = nd2a; i2 <= nd2b; i2++)
                             {
-                                // fprintf(debug_file, "Copying un(%d,%d): %f  to buff2[%d]  on rank %d\n", i1, i2, un(i1, i2), i2 - nd2a, rank);
                                 buff[i2 - nd2a] = un(i1, i2);
                             }
                             MPI_Send(buff, nd2b - nd2a + 1, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD);
                             MPI_Recv(buff2, nd2b - nd2a + 1, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                             for (i2 = nd2a + 1; i2 <= nd2b - 1; i2++)
                             {
-                                // fprintf(debug_file, "Copying buff2[%d]: %f to un(%d,%d), exact value: %f\n", i2 - nd2a, buff2[i2 - nd2a], i1g, i2, UTRUE(x(i1g, i2, 0), x(i1g, i2, 1), t + dt));
-                                // fflush(debug_file);
+
                                 un(i1g, i2) = buff2[i2 - nd2a];
                             }
                         }
@@ -323,7 +312,6 @@ int main(int argc, char *argv[])
                         int i2g = i2 - is; // index of ghost point
                         for (i1 = nd1a; i1 <= nd1b; i1++)
                         {
-                            // fprintf(debug_file, "Filling in exact to un(%d,%d): %f on rank %d\n", i1, i2, UTRUE(x(i1, i2, 0), x(i1, i2, 1), t + dt), rank);
                             un(i1, i2) = UTRUE(x(i1, i2, 0), x(i1, i2, 1), t + dt);
                             un(i1, i2g) = 3. * un(i1, i2) - 3. * u(i1, i2 + is) + un(i1, i2 + 2 * is); // extrap ghost
                         }
@@ -331,7 +319,6 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    fprintf(debug_file, "ERROR: uknown boundaryCondition=%d\n", boundaryCondition(side, axis));
                     abort();
                 }
             }
@@ -355,8 +342,6 @@ int main(int argc, char *argv[])
         }
     }
     maxErr /= max(maxNorm, REAL_MIN); // relative error
-    fprintf(debug_file, "option=%s: numSteps=%d, nx = %d, maxNorm=%8.2e, maxRelErr=%8.2e, cpuTimeStep=%9.2e(s)\n",
-            optionName.c_str(), numSteps, nx, maxNorm, maxErr, cpuTimeStep);
 
     if (nx <= 10)
     {
@@ -364,26 +349,6 @@ int main(int argc, char *argv[])
         err.display("err");
     }
 
-    //========= OPTIONALLY write matlab file for plotting in matlab =========
-    if (saveMatlab)
-    {
-        FILE *matlabFile = fopen(matlabFileName.c_str(), "w");
-        fprintf(matlabFile, "%%File written by heat2d.C\n");
-        fprintf(matlabFile, "xa=%g; xb = %g; ya = %g; yb = %g; kappa=%g; t=%g; maxErr=%10.3e; cpuTimeStep=%10.3e;\n",
-                xa, xb, ya, yb, kappa, tFinal, maxErr, cpuTimeStep);
-        fprintf(matlabFile, "n1a=%d; n1b=%d; nd1a=%d; nd1b=%d;\n", n1a, n1b, nd1a, nd1b);
-        fprintf(matlabFile, "n2a=%d; n2b=%d; nd2a=%d; nd2b=%d;\n", n2a, n2b, nd2a, nd2b);
-        fprintf(matlabFile, "dx(1)=%14.6e; dx(2)=%14.6e; numGhost=%d;\n", dx[0], dx[1], numGhost);
-        fprintf(matlabFile, "option=%d; optionName=\'%s\';\n", option, optionName.c_str());
-        if (saveMatlab > 1)
-        {
-            writeMatlabArray(matlabFile, x, "x", 2, dimension);
-            writeMatlabArray(matlabFile, ua[cur], "u", 1, dimension);
-            writeMatlabArray(matlabFile, err, "err", 1, dimension);
-        }
-        fclose(matlabFile);
-        printf("Wrote file [%s]\n", matlabFileName.c_str());
-    }
     MPI_Finalize();
     return 0;
 }
