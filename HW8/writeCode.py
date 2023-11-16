@@ -24,6 +24,6 @@ for i in spl:
                 out = out[:index] + " " + out[index:]
         new_str = new_str + out
 
-wr = open("getLocalIndexBounds.h", "w")
+wr = open("heat1d.C", "w")
 
 wr.write(new_str)
