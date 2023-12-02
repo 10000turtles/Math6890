@@ -1,6 +1,8 @@
 # export APlusPlus=/home/henshw/software/AppPpp-0.8.3-gcc7.5.0-parallel/A++/install
 # export mpi=/home/henshw/software/mpich-3.3.1-install
 
+APlusPlus = /gpfs/u/barn/PCM1/shared/software/AppPpp-0.8.3-parallel/P++/install
+
 all=openMPIHW
 
 #Setnamesofcompilersonceincaseweneedtochangethem

@@ -16,6 +16,6 @@ echo "WorkingDirectory=$(pwd)"
 echo "" 
 echo "Number ofNodesAllocated = $SLURM_JOB_NUM_NODES" 
 echo "Number ofTasksAllocated = $SLURM_NTASKS" 
-./addVector-n=10000 
-./addVector-n=1000000 
-./addVector-n=100000000
+./addVector -n=10000 
+./addVector -n=1000000 
+./addVector -n=100000000
