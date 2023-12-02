@@ -1,4 +1,4 @@
-#!/bin/bash-xe 
+#!/bin/bash -xe 
 # Usage: 
 # sbatch submit.sh 
 # 
