@@ -8,7 +8,8 @@ all=openMPIHW
 #Setnamesofcompilersonceincaseweneedtochangethem
 CC=gcc
 CXX=g++
-CMPI=/home/henshw/software/mpich-3.3.1-install/bin/mpic++
+CMPI = mpic++
+# CMPI=/home/henshw/software/mpich-3.3.1-install/bin/mpic++
 
 CCFLAGS= -DUSE_PPP -fPIC -O3 -I$(mpi)/include -I$(APlusPlus)/include -I../HW1thru/include
 
@@ -27,6 +28,7 @@ FFLAGS= -fdefault-real-8 -fdefault-double-8 -ffree-line-length-none -fopenmp
 	$(FC) $(FFLAGS) -o $@ -c $<
 
 openMPIFiles = heat2d.o heat2dUpdate.o
+
 heat2d: $(openMPIFiles)
 	$(CMPI) $(CCFLAGS) -o $@ $(openMPIFiles) $(LIBS)
 
