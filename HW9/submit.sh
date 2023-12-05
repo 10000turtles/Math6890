@@ -16,4 +16,4 @@ echo ""
 echo "Number ofNodesAllocated = $SLURM_JOB_NUM_NODES" 
 echo "Number ofTasksAllocated = $SLURM_NTASKS" 
 
-mpirun ./heat2d -nx=256 -tFinal=.01 -debug=1 -commOption=0
+mpirun ./heat1d -nx=256 -tFinal=.01 

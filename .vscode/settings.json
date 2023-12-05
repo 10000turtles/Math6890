@@ -1,6 +1,7 @@
 {
     "C_Cpp.default.compilerPath": "C:\\MinGW\\bin\\gcc.exe",
     "files.associations": {
+        "*.cu": "cuda-cpp",
         "HW2.C": "cpp",
         "parse.C": "cpp",
         "fixed.C": "cpp",
@@ -9,6 +10,7 @@
         "heat2d.C": "cpp",
         "cmath": "cpp",
         "heatADI.C": "cpp",
-        "poisson.C": "cpp"
+        "poisson.C": "cpp",
+        "heat1d.C": "cpp"
     }
 }
